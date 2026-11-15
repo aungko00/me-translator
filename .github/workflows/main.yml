@@ -4,12 +4,33 @@ on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
+  schedule:
+    - cron: '0 3 */4 * *'
 
 permissions:
   contents: write
 
 jobs:
+  keep-keystore-alive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Touch Android Debug Keystore Cache
+        uses: actions/cache/restore@v4
+        id: cache-keystore
+        with:
+          path: ~/.android/debug.keystore
+          key: me-translator-debug-keystore-v1
+      - name: Verify Keystore Cache Status
+        run: |
+          if [ "${{ steps.cache-keystore.outputs.cache-hit }}" = "true" ]; then
+            echo "Android debug keystore cache accessed and kept alive."
+          else
+            echo "No cached keystore found yet; it will be created on the next APK build."
+          fi
+
   build-apk:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
 
     steps:
@@ -120,7 +141,10 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
           cd ..
-          cp android/app/build/outputs/apk/debug/app-debug.apk "ME-Translator-${{ steps.meta.outputs.tag }}.apk"
+          APK_FILE="ME-Translator-${{ steps.meta.outputs.tag }}.apk"
+          cp android/app/build/outputs/apk/debug/app-debug.apk "${APK_FILE}"
+          echo "=== APK Signing Certificate ==="
+          keytool -printcert -jarfile "${APK_FILE}" | grep -E "Owner:|SHA256:" || true
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4

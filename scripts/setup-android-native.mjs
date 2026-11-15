@@ -208,8 +208,8 @@ public class AppInstallerPlugin extends Plugin {
         );
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setDataAndType(contentUri, "application/vnd.android.package-archive");
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true);
         context.startActivity(intent);
     }
 
@@ -297,19 +297,23 @@ public class AppInstallerPlugin extends Plugin {
                     if (code >= 300 && code < 400) {
                         String location = conn.getHeaderField("Location");
                         conn.disconnect();
-                        if (location == null || !isAllowedUrl(location)) {
+                        if (location == null) {
+                            throw new SecurityException("Empty redirect destination");
+                        }
+                        String resolvedLocation = new URL(url, location).toString();
+                        if (!isAllowedUrl(resolvedLocation)) {
                             throw new SecurityException("Blocked redirect destination");
                         }
-                        currentUrl = location;
+                        currentUrl = resolvedLocation;
                         redirects++;
                         continue;
                     }
                     break;
                 }
 
-                if (conn == null || conn.getResponseCode() < 200 || conn.getResponseCode() >= 300) {
-                    int errCode = conn != null ? conn.getResponseCode() : -1;
-                    call.reject("Download failed with HTTP " + errCode);
+                int finalCode = conn != null ? conn.getResponseCode() : -1;
+                if (finalCode < 200 || finalCode >= 300) {
+                    call.reject("Download failed with HTTP " + finalCode);
                     return;
                 }
 
