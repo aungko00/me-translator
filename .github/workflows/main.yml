@@ -4,33 +4,12 @@ on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
-  schedule:
-    - cron: '0 3 */4 * *'
 
 permissions:
   contents: write
 
 jobs:
-  keep-keystore-alive:
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Touch Android Debug Keystore Cache
-        uses: actions/cache/restore@v4
-        id: cache-keystore
-        with:
-          path: ~/.android/debug.keystore
-          key: me-translator-debug-keystore-v1
-      - name: Verify Keystore Cache Status
-        run: |
-          if [ "${{ steps.cache-keystore.outputs.cache-hit }}" = "true" ]; then
-            echo "Android debug keystore cache accessed and kept alive."
-          else
-            echo "No cached keystore found yet; it will be created on the next APK build."
-          fi
-
   build-apk:
-    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
 
     steps:
@@ -77,30 +56,26 @@ jobs:
             yes | "$SDKMANAGER" --sdk_root="${SDK_ROOT}" "platform-tools" "platforms;android-36" "build-tools;36.0.0" >/dev/null 2>&1 || true
           fi
 
-      - name: Cache Android Debug Keystore for Consistent In-Place Updates
-        uses: actions/cache@v4
-        with:
-          path: ~/.android/debug.keystore
-          key: me-translator-debug-keystore-v1
-          restore-keys: |
-            me-translator-debug-keystore-
-
-      - name: Prepare Optional Persistent Signing Keystore
+      - name: Prepare Optional Secret Keystore Override
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "${RUNNER_TEMP}/release.keystore"
             echo "ANDROID_KEYSTORE_PATH=${RUNNER_TEMP}/release.keystore" >> "$GITHUB_ENV"
+          elif [ -f "signing/me-translator.keystore" ]; then
+            echo "Using repository signing/me-translator.keystore for deterministic APK updates."
+          else
+            echo "::warning::No signing/me-translator.keystore or ANDROID_KEYSTORE_BASE64 found!"
           fi
 
       - name: Compute App Version Metadata
         id: meta
         run: |
           APP_VER=$(node -e "const fs=require('fs');const s=fs.readFileSync('lib/app-config.ts','utf8');console.log(s.match(/APP_VERSION\s*=\s*'([^']+)'/)[1])")
-          VER_CODE=$(node -e "const fs=require('fs');const s=fs.readFileSync('lib/app-config.ts','utf8');const m=s.match(/ANDROID_VERSION_CODE\s*=\s*(\d+)/);console.log(m?m[1]:123)")
+          VER_CODE=$(node -e "const fs=require('fs');const s=fs.readFileSync('lib/app-config.ts','utf8');const m=s.match(/ANDROID_VERSION_CODE\s*=\s*(\d+)/);console.log(m?m[1]:124)")
           TAG_NAME="v${APP_VER}"
-          WHATS_NEW=$(node -e "const fs=require('fs');const s=fs.readFileSync('lib/app-config.ts','utf8');const m=s.match(/RELEASE_WHATS_NEW\s*=\s*\[([\s\S]*?)\]\.join/);if(m){const parts=Function('return ['+m[1]+']')();console.log(parts.join('\n\n'));}")
+          WHATS_NEW=$(node -e "const fs=require('fs');const s=fs.readFileSync('lib/app-config.ts','utf8').replace(/export const /g,'const ');const notes=Function(s + '; return typeof RELEASE_WHATS_NEW === \"string\" ? RELEASE_WHATS_NEW : \"\";')();process.stdout.write(notes);")
           TARGET_REPO="${{ vars.RELEASE_REPO || github.repository }}"
           RELEASE_CHECK=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${TARGET_REPO}/releases/tags/${TAG_NAME}")
           SHOULD_RELEASE="true"
@@ -114,7 +89,7 @@ jobs:
           echo "should_release=${SHOULD_RELEASE}" >> $GITHUB_OUTPUT
           {
             echo 'changelog<<__CHANGELOG_EOF__'
-            echo "${WHATS_NEW}"
+            printf '%s\n' "${WHATS_NEW}"
             echo '__CHANGELOG_EOF__'
           } >> $GITHUB_OUTPUT
 
@@ -136,7 +111,7 @@ jobs:
           fi
           npx cap sync android
 
-      - name: Configure Android Version, Native Updater, Permissions & Icons
+      - name: Configure Android Version, Native Updater, Signing, Permissions & Icons
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -169,7 +144,6 @@ jobs:
           token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.meta.outputs.tag }}
           name: "ME Translator ${{ steps.meta.outputs.tag }}"
-          body: |
-            ${{ steps.meta.outputs.changelog }}
+          body: ${{ steps.meta.outputs.changelog }}
           files: ME-Translator-${{ steps.meta.outputs.tag }}.apk
           make_latest: true

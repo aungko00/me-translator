@@ -410,14 +410,16 @@ export default function AppUpdateDialog({
           </div>
 
           {/* Release Notes */}
-          <div className="mt-4 space-y-1.5">
-            <div className="text-xs font-bold opacity-80">{copy.notesTitle}</div>
-            <div
-              className={`p-3 rounded-xl border text-xs leading-relaxed max-h-36 overflow-y-auto whitespace-pre-wrap ${surfaceSubClass}`}
-            >
-              {updateInfo.releaseNotes || copy.noNotes}
+          {updateInfo.releaseNotes?.trim() ? (
+            <div className="mt-4 space-y-1.5">
+              <div className="text-xs font-bold opacity-80">{copy.notesTitle}</div>
+              <div
+                className={`p-3 rounded-xl border text-xs leading-relaxed max-h-36 overflow-y-auto whitespace-pre-wrap ${surfaceSubClass}`}
+              >
+                {updateInfo.releaseNotes}
+              </div>
             </div>
-          </div>
+          ) : null}
 
           {/* APK Metadata */}
           {updateInfo.apkAsset ? (

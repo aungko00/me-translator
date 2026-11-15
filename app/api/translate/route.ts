@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
     const geminiModel =
       model && typeof model === 'string' && model.trim().length > 0
         ? model.trim()
-        : 'gemini-3.8-flash';
+        : 'gemini-3.1-flash-lite';
 
     const ai = new GoogleGenAI({ 
       apiKey,

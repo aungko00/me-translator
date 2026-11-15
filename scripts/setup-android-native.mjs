@@ -18,17 +18,27 @@ buildGradle = buildGradle
   .replace(/versionCode\s+\d+/, `versionCode ${versionCode}`)
   .replace(/versionName\s+"[^"]*"/, `versionName "${versionName}"`);
 
-const keystorePath = process.env.ANDROID_KEYSTORE_PATH;
-const keystorePassword = process.env.ANDROID_KEYSTORE_PASSWORD;
-const keyAlias = process.env.ANDROID_KEY_ALIAS;
-const keyPassword = process.env.ANDROID_KEY_PASSWORD;
+const builtInKeystorePath = path.join(rootDir, 'signing', 'me-translator.keystore');
+const hasEnvKeystore = Boolean(
+  process.env.ANDROID_KEYSTORE_PATH &&
+  fs.existsSync(process.env.ANDROID_KEYSTORE_PATH) &&
+  process.env.ANDROID_KEYSTORE_PASSWORD &&
+  process.env.ANDROID_KEY_ALIAS &&
+  process.env.ANDROID_KEY_PASSWORD
+);
+
+const keystorePath = hasEnvKeystore ? process.env.ANDROID_KEYSTORE_PATH : builtInKeystorePath;
+const keystorePassword = hasEnvKeystore ? process.env.ANDROID_KEYSTORE_PASSWORD : 'metranslator2026';
+const keyAlias = hasEnvKeystore ? process.env.ANDROID_KEY_ALIAS : 'me-translator';
+const keyPassword = hasEnvKeystore ? process.env.ANDROID_KEY_PASSWORD : 'metranslator2026';
 
 if (keystorePath && fs.existsSync(keystorePath) && keystorePassword && keyAlias && keyPassword) {
   const escapedPath = keystorePath.replace(/\\/g, '/');
+  const storeTypeLine = hasEnvKeystore ? '' : '\n            storeType "PKCS12"';
   const signingBlock = `
     signingConfigs {
         persistent {
-            storeFile file("${escapedPath}")
+            storeFile file("${escapedPath}")${storeTypeLine}
             storePassword "${keystorePassword}"
             keyAlias "${keyAlias}"
             keyPassword "${keyPassword}"
@@ -48,7 +58,13 @@ if (keystorePath && fs.existsSync(keystorePath) && keystorePassword && keyAlias 
       `release {\n            signingConfig signingConfigs.persistent`
     );
   }
-  console.log('Configured persistent Android signing keystore from environment.');
+  console.log(
+    hasEnvKeystore
+      ? 'Configured persistent Android signing keystore from environment secrets.'
+      : 'Configured persistent Android signing keystore from signing/me-translator.keystore.'
+  );
+} else {
+  console.warn('Warning: No persistent Android signing keystore found.');
 }
 
 fs.writeFileSync(buildGradlePath, buildGradle, 'utf8');

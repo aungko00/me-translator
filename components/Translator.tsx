@@ -76,7 +76,7 @@ const TypewriterText = ({ text, speed = 25, onChar, onComplete }: { text: string
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="relative inline-block w-full"
+      className="relative block w-full min-w-0 max-w-full break-words [overflow-wrap:anywhere]"
     >
       <ReactMarkdown>{displayedText}</ReactMarkdown>
       {isTyping && (
@@ -363,18 +363,18 @@ export interface ModelOption {
 
 export const GEMINI_MODELS: ModelOption[] = [
   {
-    id: 'gemini-3.8-flash',
-    name: 'Gemini 3.8 Flash',
-    badge: 'Recommended',
-    description: 'အလွန်မြန်ဆန်ပြီး ဘာသာပြန်တိကျမှု အကောင်းဆုံး Google AI model (Default)',
-    descriptionEn: 'High-speed flagship Google AI translation model with optimal accuracy (Default)',
-  },
-  {
     id: 'gemini-3.1-flash-lite',
     name: 'Gemini 3.1 Flash Lite',
-    badge: 'Ultra Fast',
-    description: 'Latency အနည်းဆုံးနှင့် အမြန်ဆုံး အခြေခံဘာသာပြန် model',
-    descriptionEn: 'Ultra-low latency lightweight translation model',
+    badge: 'Recommended',
+    description: 'Latency အနည်းဆုံးနှင့် အမြန်ဆုံး ဘာသာပြန် Google AI model (Default)',
+    descriptionEn: 'Ultra-low latency lightweight Google AI translation model (Default)',
+  },
+  {
+    id: 'gemini-3.8-flash',
+    name: 'Gemini 3.8 Flash',
+    badge: 'Fast Flagship',
+    description: 'အလွန်မြန်ဆန်ပြီး ဘာသာပြန်တိကျမှု ကောင်းမွန်သော Google AI model',
+    descriptionEn: 'High-speed flagship Google AI translation model with optimal accuracy',
   },
   {
     id: 'gemini-4-argon',
@@ -765,7 +765,7 @@ const Translator = () => {
   const [mounted, setMounted] = useState(false)
   
   const [aiProvider, setAiProvider] = useState<AIProvider>('gemini')
-  const [geminiModel, setGeminiModel] = useState('gemini-3.8-flash')
+  const [geminiModel, setGeminiModel] = useState('gemini-3.1-flash-lite')
   const [groqModel, setGroqModel] = useState('openai/gpt-oss-120b')
   const [geminiApiKey, setGeminiApiKey] = useState('')
   const [groqApiKey, setGroqApiKey] = useState('')
@@ -878,7 +878,7 @@ const Translator = () => {
     soundType: 'Typing_1' as SoundType,
     soundEnabled: true,
     aiProvider: 'gemini' as AIProvider,
-    geminiModel: 'gemini-3.8-flash',
+    geminiModel: 'gemini-3.1-flash-lite',
     groqModel: 'openai/gpt-oss-120b',
     geminiApiKey: '',
     groqApiKey: '',
@@ -1158,8 +1158,18 @@ const Translator = () => {
       setAiProvider(savedProvider)
     }
 
+    const geminiRecApplied = localStorage.getItem('me_translator_gemini_rec_v1')
     const savedGeminiModel = localStorage.getItem('me_translator_gemini_model')
-    if (savedGeminiModel) setGeminiModel(savedGeminiModel)
+    if (!geminiRecApplied && (!savedGeminiModel || savedGeminiModel === 'gemini-3.8-flash')) {
+      setGeminiModel('gemini-3.1-flash-lite')
+      localStorage.setItem('me_translator_gemini_model', 'gemini-3.1-flash-lite')
+      localStorage.setItem('me_translator_gemini_rec_v1', '1')
+    } else {
+      if (savedGeminiModel) setGeminiModel(savedGeminiModel)
+      if (!geminiRecApplied) {
+        localStorage.setItem('me_translator_gemini_rec_v1', '1')
+      }
+    }
 
     const savedGroqModel = localStorage.getItem('me_translator_groq_model')
     if (savedGroqModel) setGroqModel(savedGroqModel)
@@ -1542,7 +1552,7 @@ const Translator = () => {
         return out ? { text: out } : { error: 'empty_response', rawDetails: 'Empty response from Groq', status: 502 }
       }
 
-      const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModel || 'gemini-3.8-flash')}:generateContent?key=${encodeURIComponent(trimmedKey)}`
+      const geminiEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(activeModel || 'gemini-3.1-flash-lite')}:generateContent?key=${encodeURIComponent(trimmedKey)}`
       const geminiRes = await fetch(geminiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1838,7 +1848,7 @@ const Translator = () => {
 
   return (
     <div className={cn(
-      "flex flex-col h-screen transition-all duration-500 relative overflow-hidden font-sans",
+      "flex flex-col h-screen w-full max-w-full transition-all duration-500 relative overflow-hidden font-sans",
       currentTheme.bg,
       currentTheme.text
     )}>
@@ -2054,8 +2064,8 @@ const Translator = () => {
       </header>
 
       {/* Chat Area */}
-      <main className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-        <div className="max-w-3xl mx-auto px-4 py-8">
+      <main className="flex-1 min-w-0 w-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/10">
+        <div className="max-w-3xl w-full min-w-0 mx-auto px-4 py-8">
           {messages.length === 0 ? (
             <div className="h-[60vh] flex flex-col items-center justify-center text-center space-y-6">
               <div className={cn(
@@ -2101,14 +2111,14 @@ const Translator = () => {
               </div>
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-8 w-full min-w-0">
               {messages.map((msg) => (
                 <motion.div
                   key={msg.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={cn(
-                    "flex gap-4 group",
+                    "flex gap-2.5 sm:gap-4 group min-w-0 w-full",
                     msg.role === 'user' ? "justify-end" : "justify-start"
                   )}
                 >
@@ -2126,7 +2136,7 @@ const Translator = () => {
                   <motion.div 
                     {...getAnimationVariants(msg.role === 'assistant' ? animation : 'slide')}
                     className={cn(
-                      "max-w-[92%] sm:max-w-[85%] rounded-2xl px-3 py-2 sm:px-4 sm:py-3 relative border transition-all duration-500",
+                      "max-w-[92%] sm:max-w-[85%] min-w-0 overflow-hidden break-words [overflow-wrap:anywhere] rounded-2xl px-3 py-2 sm:px-4 sm:py-3 relative border transition-all duration-500",
                       msg.role === 'user' 
                         ? (isCyber ? "bg-black/80 backdrop-blur-sm border-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.2)] text-[#00f2ff]" : isGlass ? "bg-white/10 backdrop-blur-xl border-white/20 text-white shadow-xl" : isBrutal ? "bg-white border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] text-black" : (currentTheme.isDark ? "bg-[#2f2f2f] text-white border-white/5" : "bg-white text-black border-gray-200 shadow-sm")) 
                         : (isCyber ? "bg-black/40 backdrop-blur-sm border-[#00f2ff]/30 text-[#00f2ff] shadow-[inset_0_0_10px_rgba(0,242,255,0.05)]" : isGlass ? "bg-white/5 backdrop-blur-md border-white/10 text-white/90" : isBrutal ? "bg-transparent border-transparent text-black" : (currentTheme.isDark ? "bg-transparent text-[#ececec] border-transparent" : "bg-transparent text-gray-800 border-transparent"))
@@ -2201,9 +2211,9 @@ const Translator = () => {
                     </div>
                     
                     {msg.isPending ? (
-                      <div className="space-y-2.5 min-w-[200px] sm:min-w-[260px] py-1">
+                      <div className="space-y-2.5 w-full max-w-[260px] py-1">
                         <div className={cn("h-3.5 rounded w-28 animate-pulse", currentTheme.isDark ? "bg-white/15" : "bg-black/10")} />
-                        <div className={cn("h-3.5 rounded w-56 sm:w-72 animate-pulse", currentTheme.isDark ? "bg-white/10" : "bg-black/10")} />
+                        <div className={cn("h-3.5 rounded w-48 sm:w-64 animate-pulse", currentTheme.isDark ? "bg-white/10" : "bg-black/10")} />
                         {isCyber && (
                           <div className="text-[10px] text-[#00f2ff] animate-pulse font-mono pt-1">
                             SYSTEM_PROCESSING_DATA...
@@ -2214,7 +2224,7 @@ const Translator = () => {
                       const isBurmeseOutput = (msg.role === 'assistant' && msg.targetLang === 'Myanmar') || /[\u1000-\u109F\uAA60-\uAA7F]/.test(msg.content);
                       return (
                         <div className={cn(
-                          "prose prose-invert max-w-none text-base leading-relaxed",
+                          "prose prose-invert max-w-full min-w-0 text-base leading-relaxed break-words [overflow-wrap:anywhere] [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-all [&_a]:break-all",
                           isBurmeseOutput ? currentMyanmarFont.class : currentFont.class,
                           isCyber && "prose-p:text-[#00f2ff] prose-strong:text-[#00f2ff] prose-headings:text-[#00f2ff]",
                           isGlass && "prose-p:text-white prose-strong:text-white prose-headings:text-white",
@@ -2259,10 +2269,10 @@ const Translator = () => {
 
       {/* Input Area */}
       <footer className={cn(
-        "p-2 sm:p-4 bg-gradient-to-t to-transparent transition-all duration-500",
+        "p-2 sm:p-4 bg-gradient-to-t to-transparent transition-all duration-500 w-full min-w-0 overflow-hidden",
         currentTheme.isDark ? "from-black via-black" : "from-white via-white"
       )}>
-        <div className="max-w-3xl mx-auto relative">
+        <div className="max-w-3xl w-full min-w-0 mx-auto relative">
           <AnimatePresence>
             {micError && (
               <motion.div
@@ -2270,15 +2280,15 @@ const Translator = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 6 }}
                 className={cn(
-                  "mb-2 p-2.5 px-3 rounded-xl border text-xs flex items-center justify-between gap-2 shadow-sm backdrop-blur-md",
+                  "mb-2 p-2.5 px-3 rounded-xl border text-xs flex items-center justify-between gap-2 shadow-sm backdrop-blur-md min-w-0",
                   isCyber 
                     ? "bg-red-950/80 border-red-500/50 text-red-200" 
                     : (currentTheme.isDark ? "bg-red-950/60 border-red-500/30 text-red-200" : "bg-red-50 border-red-200 text-red-700")
                 )}
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <MicOff className="w-4 h-4 shrink-0 text-red-400" />
-                  <span className="leading-tight">{micError}</span>
+                  <span className="leading-tight break-words min-w-0">{micError}</span>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
