@@ -42,6 +42,9 @@ if (keystorePath && fs.existsSync(keystorePath) && keystorePassword && keyAlias 
             storePassword "${keystorePassword}"
             keyAlias "${keyAlias}"
             keyPassword "${keyPassword}"
+            enableV1Signing true
+            enableV2Signing true
+            enableV3Signing true
         }
     }
 `;

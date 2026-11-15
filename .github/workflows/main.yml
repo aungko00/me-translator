@@ -127,8 +127,13 @@ jobs:
           cd ..
           APK_FILE="ME-Translator-${{ steps.meta.outputs.tag }}.apk"
           cp android/app/build/outputs/apk/debug/app-debug.apk "${APK_FILE}"
-          echo "=== APK Signing Certificate ==="
-          keytool -printcert -jarfile "${APK_FILE}" | grep -E "Owner:|SHA256:" || true
+          echo "=== Verifying APK Signature with Android apksigner ==="
+          APKSIGNER=$(find "${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}/build-tools" -name apksigner -type f 2>/dev/null | sort -V | tail -n 1)
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --verbose --print-certs "${APK_FILE}"
+          else
+            keytool -printcert -jarfile "${APK_FILE}" | grep -E "Owner:|SHA256:"
+          fi
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
