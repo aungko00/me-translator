@@ -17,8 +17,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
 
-    const sLang = sourceLang || 'Auto';
-    const tLang = targetLang || 'Myanmar';
+    const sLang = sourceLang || 'Myanmar';
+    const tLang = targetLang || 'English';
+    const isAutoSource = sLang.toLowerCase() === 'auto';
+    const myanmarRule = tLang.toLowerCase() === 'myanmar'
+      ? ' Ensure the Myanmar translation uses standard, polite, natural modern Burmese writing.'
+      : '';
+    const systemPrompt = isAutoSource
+      ? `You are a master professional translator. Automatically detect the source language of the user's text and translate it accurately and naturally into ${tLang}.${myanmarRule} Output ONLY the translated text, with no introductory remarks, quotes, or explanations.`
+      : `You are a master professional translator specializing in ${sLang} and ${tLang}. Translate the text accurately, naturally, and culturally appropriately from ${sLang} into ${tLang}.${myanmarRule} Output ONLY the translated text, with no introductory remarks, quotes, or explanations.`;
+    const userPrompt = isAutoSource
+      ? `Detect the source language and translate the following text into ${tLang}. Only provide the translation:\n\n${text}`
+      : `Translate the following text from ${sLang} to ${tLang}. Only provide the translation:\n\n${text}`;
 
     // 1. GROQ PROVIDER
     if (provider === 'groq') {
@@ -53,11 +63,11 @@ export async function POST(req: NextRequest) {
           messages: [
             {
               role: 'system',
-              content: `You are a master professional translator specializing in ${sLang} and ${tLang}. Provide accurate, natural-sounding, and culturally appropriate translations. If the input is English, translate to Myanmar. If the input is Myanmar, translate to English. Ensure the Myanmar translation uses standard, polite, modern Burmese writing. Output ONLY the translated text, with no introductory remarks, quotes, or explanations.`,
+              content: systemPrompt,
             },
             {
               role: 'user',
-              content: `Translate the following text from ${sLang} to ${tLang}:\n\n${text}`,
+              content: userPrompt,
             },
           ],
           temperature: 0.2,
@@ -114,9 +124,9 @@ export async function POST(req: NextRequest) {
 
     const response = await ai.models.generateContent({
       model: geminiModel,
-      contents: `Translate the following text from ${sLang} to ${tLang}. Only provide the translation, no extra explanations.\n\nText: ${text}`,
+      contents: userPrompt,
       config: {
-        systemInstruction: `You are a professional translator specializing in ${sLang} and ${tLang}. Provide accurate, natural-sounding translations. If the input is English, translate to Myanmar. If the input is Myanmar, translate to English. Ensure the Myanmar translation uses standard, polite language.`,
+        systemInstruction: systemPrompt,
       },
     });
 

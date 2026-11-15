@@ -93,6 +93,34 @@ const TypewriterText = ({ text, speed = 25, onChar, onComplete }: { text: string
   )
 }
 
+interface ChatLanguageOption {
+  id: string
+  code: string
+  labelEn: string
+  labelMy: string
+  speechLang: string
+}
+
+const CHAT_LANGUAGES: ChatLanguageOption[] = [
+  { id: 'Auto', code: 'AUTO', labelEn: 'Auto Detect', labelMy: 'အလိုအလျောက်', speechLang: 'my-MM' },
+  { id: 'Myanmar', code: 'MM', labelEn: 'Myanmar', labelMy: 'မြန်မာ', speechLang: 'my-MM' },
+  { id: 'English', code: 'EN', labelEn: 'English', labelMy: 'အင်္ဂလိပ်', speechLang: 'en-US' },
+  { id: 'Thai', code: 'TH', labelEn: 'Thai', labelMy: 'ထိုင်း', speechLang: 'th-TH' },
+  { id: 'Japanese', code: 'JA', labelEn: 'Japanese', labelMy: 'ဂျပန်', speechLang: 'ja-JP' },
+  { id: 'Korean', code: 'KO', labelEn: 'Korean', labelMy: 'ကိုရီးယား', speechLang: 'ko-KR' },
+  { id: 'Chinese', code: 'ZH', labelEn: 'Chinese', labelMy: 'တရုတ်', speechLang: 'zh-CN' },
+  { id: 'Malay', code: 'MS', labelEn: 'Malay', labelMy: 'မလေး', speechLang: 'ms-MY' },
+  { id: 'Indonesian', code: 'ID', labelEn: 'Indonesian', labelMy: 'အင်ဒိုနီးရှား', speechLang: 'id-ID' },
+  { id: 'Hindi', code: 'HI', labelEn: 'Hindi', labelMy: 'ဟိန္ဒီ', speechLang: 'hi-IN' },
+  { id: 'French', code: 'FR', labelEn: 'French', labelMy: 'ပြင်သစ်', speechLang: 'fr-FR' },
+  { id: 'German', code: 'DE', labelEn: 'German', labelMy: 'ဂျာမန်', speechLang: 'de-DE' },
+  { id: 'Spanish', code: 'ES', labelEn: 'Spanish', labelMy: 'စပိန်', speechLang: 'es-ES' },
+  { id: 'Arabic', code: 'AR', labelEn: 'Arabic', labelMy: 'အာရဗီ', speechLang: 'ar-SA' },
+  { id: 'Russian', code: 'RU', labelEn: 'Russian', labelMy: 'ရုရှား', speechLang: 'ru-RU' },
+]
+
+const TARGET_CHAT_LANGUAGES = CHAT_LANGUAGES.filter((lang) => lang.id !== 'Auto')
+
 interface ChatSession {
   id: string
   title: string
@@ -715,8 +743,10 @@ const Translator = () => {
   const [sidebarTab, setSidebarTab] = useState<'history' | 'favorites'>('history')
   const [historySearchQuery, setHistorySearchQuery] = useState('')
   const [loadingSessionIds, setLoadingSessionIds] = useState<Set<string>>(new Set())
-  const [sourceLang, setSourceLang] = useState('English')
-  const [targetLang, setTargetLang] = useState('Myanmar')
+  const [sourceLang, setSourceLang] = useState('Myanmar')
+  const [targetLang, setTargetLang] = useState('English')
+  const [chatLangDropdown, setChatLangDropdown] = useState<'source' | 'target' | null>(null)
+  const chatLangMenuRef = useRef<HTMLDivElement | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isConfirmOpen, setIsConfirmOpen] = useState(false)
@@ -1103,11 +1133,25 @@ const Translator = () => {
     const savedSoundEnabled = localStorage.getItem('me_translator_sound_enabled')
     if (savedSoundEnabled !== null) setSoundEnabled(savedSoundEnabled === 'true')
 
+    const defaultV2Applied = localStorage.getItem('me_translator_default_mm_en_v1')
     const savedSourceLang = localStorage.getItem('me_translator_source_lang')
-    if (savedSourceLang) setSourceLang(savedSourceLang)
-
     const savedTargetLang = localStorage.getItem('me_translator_target_lang')
-    if (savedTargetLang) setTargetLang(savedTargetLang)
+    const isValidSource = (lang: string | null) => !!lang && CHAT_LANGUAGES.some((item) => item.id === lang)
+    const isValidTarget = (lang: string | null) => !!lang && TARGET_CHAT_LANGUAGES.some((item) => item.id === lang)
+
+    if (!defaultV2Applied && (!savedSourceLang || (savedSourceLang === 'English' && savedTargetLang === 'Myanmar'))) {
+      setSourceLang('Myanmar')
+      setTargetLang('English')
+      localStorage.setItem('me_translator_source_lang', 'Myanmar')
+      localStorage.setItem('me_translator_target_lang', 'English')
+      localStorage.setItem('me_translator_default_mm_en_v1', '1')
+    } else {
+      if (isValidSource(savedSourceLang)) setSourceLang(savedSourceLang!)
+      if (isValidTarget(savedTargetLang)) setTargetLang(savedTargetLang!)
+      if (!defaultV2Applied) {
+        localStorage.setItem('me_translator_default_mm_en_v1', '1')
+      }
+    }
 
     const savedProvider = localStorage.getItem('me_translator_ai_provider') as AIProvider | null
     if (savedProvider === 'gemini' || savedProvider === 'groq') {
@@ -1214,6 +1258,21 @@ const Translator = () => {
     localStorage.setItem('me_translator_target_lang', targetLang)
   }, [targetLang])
 
+  useEffect(() => {
+    if (!chatLangDropdown) return
+    const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
+      if (chatLangMenuRef.current && !chatLangMenuRef.current.contains(event.target as Node)) {
+        setChatLangDropdown(null)
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick)
+    document.addEventListener('touchstart', handleOutsideClick)
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+      document.removeEventListener('touchstart', handleOutsideClick)
+    }
+  }, [chatLangDropdown])
+
   const playTypingSound = useCallback((type: SoundType = soundType) => {
     if (!soundEnabled) return
     if (!audioCtxRef.current) {
@@ -1309,7 +1368,8 @@ const Translator = () => {
     try {
       const recognition = new SpeechRecognition()
       recognitionRef.current = recognition
-      recognition.lang = sourceLang === 'English' ? 'en-US' : 'my-MM'
+      const selectedLangMeta = CHAT_LANGUAGES.find((item) => item.id === sourceLang)
+      recognition.lang = selectedLangMeta?.speechLang || 'my-MM'
       recognition.interimResults = false
       recognition.maxAlternatives = 1
 
@@ -1362,9 +1422,8 @@ const Translator = () => {
     if (!input.trim()) return
 
     const currentInput = input
-    const containsBurmese = /[\u1000-\u109F\uAA60-\uAA7F]/.test(currentInput)
-    const msgSourceLang = containsBurmese ? 'Myanmar' : 'English'
-    const msgTargetLang = containsBurmese ? 'English' : 'Myanmar'
+    const msgSourceLang = sourceLang || 'Myanmar'
+    const msgTargetLang = targetLang || 'English'
 
     const uniqueToken = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const userMsgId = `user-${uniqueToken}`
@@ -1441,6 +1500,17 @@ const Translator = () => {
         }
       }
 
+      const isAutoSource = msgSourceLang.toLowerCase() === 'auto'
+      const myanmarRule = msgTargetLang.toLowerCase() === 'myanmar'
+        ? ' Ensure the Myanmar translation uses standard, polite, natural modern Burmese writing.'
+        : ''
+      const systemPrompt = isAutoSource
+        ? `You are a master professional translator. Automatically detect the source language of the user's text and translate it accurately and naturally into ${msgTargetLang}.${myanmarRule} Output ONLY the translated text, with no introductory remarks, quotes, or explanations.`
+        : `You are a master professional translator specializing in ${msgSourceLang} and ${msgTargetLang}. Translate accurately, naturally, and culturally appropriately from ${msgSourceLang} into ${msgTargetLang}.${myanmarRule} Output ONLY the translated text, with no introductory remarks, quotes, or explanations.`
+      const userPrompt = isAutoSource
+        ? `Detect the source language and translate the following text into ${msgTargetLang}. Only provide the translation:\n\n${currentInput}`
+        : `Translate the following text from ${msgSourceLang} to ${msgTargetLang}. Only provide the translation:\n\n${currentInput}`
+
       if (activeProvider === 'groq') {
         const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -1453,11 +1523,11 @@ const Translator = () => {
             messages: [
               {
                 role: 'system',
-                content: `You are a master professional translator specializing in ${msgSourceLang} and ${msgTargetLang}. Provide accurate, natural-sounding, and culturally appropriate translations. If the input is English, translate to Myanmar. If the input is Myanmar, translate to English. Ensure the Myanmar translation uses standard, polite, modern Burmese writing. Output ONLY the translated text, with no introductory remarks, quotes, or explanations.`,
+                content: systemPrompt,
               },
               {
                 role: 'user',
-                content: `Translate the following text from ${msgSourceLang} to ${msgTargetLang}:\n\n${currentInput}`,
+                content: userPrompt,
               },
             ],
             temperature: 0.2,
@@ -1479,13 +1549,13 @@ const Translator = () => {
         body: JSON.stringify({
           systemInstruction: {
             parts: [{
-              text: `You are a professional translator specializing in ${msgSourceLang} and ${msgTargetLang}. Provide accurate, natural-sounding translations. If the input is English, translate to Myanmar. If the input is Myanmar, translate to English. Ensure the Myanmar translation uses standard, polite language.`
+              text: systemPrompt
             }]
           },
           contents: [{
             role: 'user',
             parts: [{
-              text: `Translate the following text from ${msgSourceLang} to ${msgTargetLang}. Only provide the translation, no extra explanations.\n\nText: ${currentInput}`
+              text: userPrompt
             }]
           }]
         })
@@ -1826,32 +1896,134 @@ const Translator = () => {
         </div>
         
         <div className="flex items-center gap-1 sm:gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              const nextSrc = sourceLang === 'English' ? 'Myanmar' : 'English'
-              const nextTgt = nextSrc === 'English' ? 'Myanmar' : 'English'
-              setSourceLang(nextSrc)
-              setTargetLang(nextTgt)
-              if (typeof window !== 'undefined') {
-                localStorage.setItem('me_translator_source_lang', nextSrc)
-                localStorage.setItem('me_translator_target_lang', nextTgt)
-              }
-            }}
-            className={cn(
-              "flex items-center gap-1.5 px-2.5 py-2 min-h-[40px] rounded-xl text-xs font-semibold transition-all border whitespace-nowrap shrink-0",
+          <div ref={chatLangMenuRef} className="relative flex items-center">
+            <div className={cn(
+              "flex items-center rounded-xl border p-0.5 transition-all",
               isCyber
-                ? "border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10"
+                ? "border-[#00f2ff]/40 bg-black"
                 : currentTheme.isDark
-                  ? "border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
-                  : "border-black/10 bg-black/5 text-gray-800 hover:bg-black/10"
-            )}
-            title={t.swapDirection}
-          >
-            <span>{sourceLang === 'English' ? 'EN' : 'MM'}</span>
-            <ArrowLeftRight className="w-3.5 h-3.5 opacity-80" />
-            <span>{targetLang === 'English' ? 'EN' : 'MM'}</span>
-          </button>
+                  ? "border-white/10 bg-white/5"
+                  : "border-black/10 bg-black/5"
+            )}>
+              <button
+                type="button"
+                onClick={() => setChatLangDropdown(prev => prev === 'source' ? null : 'source')}
+                className={cn(
+                  "flex items-center gap-1 px-2 sm:px-2.5 min-h-[38px] rounded-lg text-xs font-bold whitespace-nowrap transition-colors",
+                  chatLangDropdown === 'source'
+                    ? (isCyber ? "bg-[#00f2ff]/20 text-[#00f2ff]" : currentTheme.isDark ? "bg-white/15 text-white" : "bg-white text-black shadow-sm")
+                    : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-200 hover:bg-white/10" : "text-gray-800 hover:bg-black/5")
+                )}
+                title={appLang === 'en' ? 'Source Language' : 'မူရင်း ဘာသာစကား'}
+              >
+                <span>{CHAT_LANGUAGES.find(l => l.id === sourceLang)?.code || 'MM'}</span>
+                <ChevronDown className={cn("w-3 h-3 opacity-75 transition-transform", chatLangDropdown === 'source' && "rotate-180")} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const nextSrc = sourceLang === 'Auto' ? targetLang : targetLang
+                  const nextTgt = sourceLang === 'Auto'
+                    ? (targetLang === 'Myanmar' ? 'English' : 'Myanmar')
+                    : sourceLang
+                  setSourceLang(nextSrc)
+                  setTargetLang(nextTgt)
+                  setChatLangDropdown(null)
+                }}
+                className={cn(
+                  "px-1.5 min-h-[38px] min-w-[32px] flex items-center justify-center rounded-lg transition-colors",
+                  isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-emerald-400 hover:bg-white/10" : "text-[#5A5A40] hover:bg-black/5"
+                )}
+                title={t.swapDirection}
+                aria-label={t.swapDirection}
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setChatLangDropdown(prev => prev === 'target' ? null : 'target')}
+                className={cn(
+                  "flex items-center gap-1 px-2 sm:px-2.5 min-h-[38px] rounded-lg text-xs font-bold whitespace-nowrap transition-colors",
+                  chatLangDropdown === 'target'
+                    ? (isCyber ? "bg-[#00f2ff]/20 text-[#00f2ff]" : currentTheme.isDark ? "bg-white/15 text-white" : "bg-white text-black shadow-sm")
+                    : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-200 hover:bg-white/10" : "text-gray-800 hover:bg-black/5")
+                )}
+                title={appLang === 'en' ? 'Target Language' : 'ဘာသာပြန်မည့် ဘာသာစကား'}
+              >
+                <span>{CHAT_LANGUAGES.find(l => l.id === targetLang)?.code || 'EN'}</span>
+                <ChevronDown className={cn("w-3 h-3 opacity-75 transition-transform", chatLangDropdown === 'target' && "rotate-180")} />
+              </button>
+            </div>
+
+            <AnimatePresence>
+              {chatLangDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                  className={cn(
+                    "absolute right-0 top-full mt-2 w-60 max-h-72 overflow-y-auto rounded-xl border shadow-2xl z-50 p-1",
+                    isCyber
+                      ? "bg-black border-[#00f2ff] text-[#00f2ff]"
+                      : currentTheme.isDark
+                        ? "bg-[#222222] border-white/15 text-white"
+                        : "bg-white border-gray-200 text-gray-900"
+                  )}
+                >
+                  <div className={cn(
+                    "px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider border-b mb-1",
+                    currentTheme.isDark ? "border-white/10 text-gray-400" : "border-gray-100 text-gray-500"
+                  )}>
+                    {chatLangDropdown === 'source'
+                      ? (appLang === 'en' ? 'Translate From' : 'မူရင်း ဘာသာစကား')
+                      : (appLang === 'en' ? 'Translate To' : 'ဘာသာပြန်မည့် ဘာသာစကား')}
+                  </div>
+                  {(chatLangDropdown === 'source' ? CHAT_LANGUAGES : TARGET_CHAT_LANGUAGES).map((langOpt) => {
+                    const isSelected = chatLangDropdown === 'source'
+                      ? sourceLang === langOpt.id
+                      : targetLang === langOpt.id
+                    return (
+                      <button
+                        key={langOpt.id}
+                        type="button"
+                        onClick={() => {
+                          if (chatLangDropdown === 'source') {
+                            if (langOpt.id === targetLang) {
+                              setTargetLang(sourceLang === 'Auto' ? (langOpt.id === 'English' ? 'Myanmar' : 'English') : sourceLang)
+                            }
+                            setSourceLang(langOpt.id)
+                          } else {
+                            if (langOpt.id === sourceLang) {
+                              setSourceLang(targetLang)
+                            }
+                            setTargetLang(langOpt.id)
+                          }
+                          setChatLangDropdown(null)
+                        }}
+                        className={cn(
+                          "w-full min-h-[44px] px-3 py-2 rounded-lg flex items-center justify-between gap-2 text-left text-xs transition-colors",
+                          isSelected
+                            ? (isCyber ? "bg-[#00f2ff] text-black font-bold" : currentTheme.isDark ? "bg-emerald-600/30 text-emerald-300 font-bold" : "bg-emerald-50 text-emerald-800 font-bold")
+                            : (isCyber ? "hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "hover:bg-white/5 text-gray-200" : "hover:bg-gray-100 text-gray-800")
+                        )}
+                      >
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="font-mono text-[11px] font-bold w-9 shrink-0 opacity-75">{langOpt.code}</span>
+                          <span className="truncate">
+                            {appLang === 'en' ? langOpt.labelEn : `${langOpt.labelMy} (${langOpt.labelEn})`}
+                          </span>
+                        </span>
+                        {isSelected && <Check className="w-3.5 h-3.5 shrink-0" />}
+                      </button>
+                    )
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           <button
             type="button"
@@ -2142,7 +2314,11 @@ const Translator = () => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={appLang === 'en' ? `Type in English or Myanmar...` : (sourceLang === 'English' ? 'အင်္ဂလိပ် သို့မဟုတ် မြန်မာလို ရိုက်ထည့်ပါ...' : 'မြန်မာ သို့မဟုတ် အင်္ဂလိပ်လို ရိုက်ထည့်ပါ...')}
+              placeholder={
+                appLang === 'en'
+                  ? `Type text (${CHAT_LANGUAGES.find(l => l.id === sourceLang)?.labelEn || sourceLang} → ${CHAT_LANGUAGES.find(l => l.id === targetLang)?.labelEn || targetLang})...`
+                  : `${CHAT_LANGUAGES.find(l => l.id === sourceLang)?.labelMy || sourceLang} မှ ${CHAT_LANGUAGES.find(l => l.id === targetLang)?.labelMy || targetLang} သို့ ဘာသာပြန်ရန် ရိုက်ထည့်ပါ...`
+              }
               rows={1}
               className={cn(
                 "w-full border rounded-2xl py-3 sm:py-4 pl-4 pr-24 sm:pr-28 focus:outline-none transition-all duration-500 resize-none min-h-[48px] sm:min-h-[56px] max-h-32 overflow-y-auto z-10 text-sm sm:text-base",
@@ -2722,12 +2898,12 @@ const Translator = () => {
               </div>
 
               {/* Scrollable Content */}
-              <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 pt-0 pb-6 space-y-8 scrollbar-thin scrollbar-thumb-white/10">
-                <div className="min-h-[350px]">
+              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 pt-0 pb-6 space-y-8 scrollbar-thin scrollbar-thumb-white/10">
+                <div className="min-h-[350px] min-w-0 w-full">
                   {activeSettingsTab === 'appearance' && (
                   <motion.div 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
                     className="space-y-6"
                   >
                     {/* App Language Selector */}
@@ -3034,8 +3210,8 @@ const Translator = () => {
 
                 {activeSettingsTab === 'audio' && (
                   <motion.div 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
                     className="space-y-6"
                   >
                     {/* Animation Dropdown */}
@@ -3215,13 +3391,13 @@ const Translator = () => {
 
                 {activeSettingsTab === 'api' && (
                   <motion.div 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-6"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-6 min-w-0 w-full"
                   >
                     {/* API Provider & Model Configuration Section */}
-                    <div className="space-y-5">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-black/5 dark:border-white/5">
+                    <div className="space-y-5 min-w-0 w-full">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-black/5 dark:border-white/5 min-w-0">
                         <div className="flex items-center gap-2">
                           <Zap className={cn("w-4 h-4", isCyber ? "text-[#00f2ff]" : "text-amber-500")} />
                           <h4 className={cn(
@@ -3313,16 +3489,16 @@ const Translator = () => {
                       </div>
 
                       {/* 2. AI Model Selection Dropdown */}
-                      <div className="space-y-2 relative">
-                        <div className="flex items-center justify-between">
+                      <div className="space-y-2 relative min-w-0 w-full">
+                        <div className="flex items-center justify-between gap-2 min-w-0">
                           <label className={cn(
-                            "text-[10px] font-bold uppercase tracking-wider",
+                            "text-[10px] font-bold uppercase tracking-wider truncate",
                             isCyber ? "text-[#00f2ff]/60" : currentTheme.isDark ? "text-gray-400" : "text-gray-700 font-semibold"
                           )}>
                             {stagedSettings.aiProvider === 'gemini' ? tSettings.geminiModelLabel : tSettings.groqModelLabel}
                           </label>
                           <span className={cn(
-                            "text-[10px] font-mono",
+                            "text-[10px] font-mono truncate max-w-[55%]",
                             currentTheme.isDark ? "text-gray-400" : "text-stone-500"
                           )}>
                             {stagedSettings.aiProvider === 'gemini' ? stagedSettings.geminiModel : stagedSettings.groqModel}
@@ -3333,13 +3509,13 @@ const Translator = () => {
                           type="button"
                           onClick={() => setActiveDropdown(activeDropdown === 'model' ? null : 'model')}
                           className={cn(
-                            "w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all text-left",
+                            "w-full min-w-0 overflow-hidden flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all text-left",
                             isCyber ? "bg-black border-[#00f2ff] text-[#00f2ff]" : cn(currentTheme.bg, currentTheme.border, currentTheme.text)
                           )}
                         >
-                          <div className="flex items-center gap-2 truncate pr-2">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
                             <Cpu className="w-4 h-4 flex-shrink-0" />
-                            <span className="text-sm font-semibold truncate">
+                            <span className="text-sm font-semibold truncate min-w-0">
                               {(stagedSettings.aiProvider === 'gemini' ? GEMINI_MODELS : GROQ_MODELS).find(m => m.id === (stagedSettings.aiProvider === 'gemini' ? stagedSettings.geminiModel : stagedSettings.groqModel))?.name || (stagedSettings.aiProvider === 'gemini' ? stagedSettings.geminiModel : stagedSettings.groqModel)}
                             </span>
                             <span className={cn(
@@ -3447,8 +3623,8 @@ const Translator = () => {
                           : '••••••••'
 
                         return (
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between">
+                          <div className="space-y-1.5 min-w-0 w-full">
+                            <div className="flex items-center justify-between gap-2 flex-wrap min-w-0">
                               <label className={cn(
                                 "text-[10px] font-bold uppercase tracking-wider",
                                 isCyber ? "text-[#00f2ff]/60" : currentTheme.isDark ? "text-gray-400" : "text-gray-700 font-semibold"
@@ -3456,7 +3632,7 @@ const Translator = () => {
                                 {isGemini ? `Gemini ${tSettings.apiKeyField}` : `Groq ${tSettings.apiKeyField}`}
                               </label>
                               <span className={cn(
-                                "text-[10px] font-mono flex items-center gap-1",
+                                "text-[10px] font-mono flex items-center gap-1 shrink-0",
                                 hasAnyKey
                                   ? "text-emerald-500 font-bold"
                                   : currentTheme.isDark ? "text-gray-400" : "text-stone-500"
@@ -3466,18 +3642,18 @@ const Translator = () => {
                             </div>
 
                             {hasSavedKey && !isReplacing ? (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 min-w-0 w-full">
                                 <div className={cn(
-                                  "flex-1 flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm font-mono select-none",
+                                  "flex-1 min-w-0 flex items-center justify-between px-3 sm:px-4 py-2.5 rounded-xl border text-sm font-mono select-none overflow-hidden",
                                   isCyber
                                     ? "bg-black border-[#00f2ff]/60 text-[#00f2ff]"
                                     : currentTheme.isDark
                                       ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
                                       : "bg-emerald-50 border-emerald-300 text-emerald-900"
                                 )}>
-                                  <span className="flex items-center gap-2 tracking-wider">
+                                  <span className="flex items-center gap-2 tracking-wider truncate min-w-0">
                                     <Lock className="w-3.5 h-3.5 shrink-0" />
-                                    <span>{maskedLastFour}</span>
+                                    <span className="truncate">{maskedLastFour}</span>
                                   </span>
                                 </div>
                                 <button
@@ -3531,9 +3707,9 @@ const Translator = () => {
                                 </button>
                               </div>
                             ) : (
-                              <div className="space-y-2">
-                                <div className="relative flex items-center gap-2">
-                                  <div className="relative flex-1">
+                              <div className="space-y-2 min-w-0 w-full">
+                                <div className="relative flex items-center gap-2 min-w-0 w-full">
+                                  <div className="relative flex-1 min-w-0">
                                     <input
                                       ref={apiKeyInputRef}
                                       type="password"
@@ -3548,7 +3724,7 @@ const Translator = () => {
                                       }}
                                       placeholder={isGemini ? tSettings.pasteKeyPlaceholder('Gemini (AIzaSy...)') : tSettings.pasteKeyPlaceholder('Groq (gsk_...)')}
                                       className={cn(
-                                        "w-full px-4 py-2.5 rounded-xl border text-sm transition-all focus:outline-none",
+                                        "w-full min-w-0 px-3 sm:px-4 py-2.5 rounded-xl border text-sm transition-all focus:outline-none",
                                         isCyber 
                                           ? "bg-black border-[#00f2ff] text-[#00f2ff] placeholder-[#00f2ff]/40 focus:ring-1 focus:ring-[#00f2ff]" 
                                           : currentTheme.isDark
@@ -3557,7 +3733,7 @@ const Translator = () => {
                                       )}
                                     />
                                   </div>
-                                  <div className="flex gap-1.5">
+                                  <div className="flex gap-1.5 shrink-0">
                                     <button
                                       type="button"
                                       onClick={async () => {
@@ -3674,10 +3850,10 @@ const Translator = () => {
                               href="https://aistudio.google.com/app/apikey" 
                               target="_blank" 
                               rel="noopener noreferrer" 
-                              className={cn("inline-flex items-center gap-1 hover:underline font-bold", currentTheme.isDark ? "text-blue-400" : "text-blue-600")}
+                              className={cn("inline-flex items-center gap-1 hover:underline font-bold break-all", currentTheme.isDark ? "text-blue-400" : "text-blue-600")}
                             >
                               <span>aistudio.google.com/app/apikey</span>
-                              <ExternalLink className="w-3 h-3" />
+                              <ExternalLink className="w-3 h-3 shrink-0" />
                             </a>
                           </p>
                           <div className={cn("pt-2 border-t", currentTheme.isDark ? "border-white/5" : "border-black/10")}>
@@ -3709,10 +3885,10 @@ const Translator = () => {
                               href="https://console.groq.com/keys" 
                               target="_blank" 
                               rel="noopener noreferrer" 
-                              className={cn("inline-flex items-center gap-1 hover:underline font-bold", currentTheme.isDark ? "text-amber-400" : "text-blue-600")}
+                              className={cn("inline-flex items-center gap-1 hover:underline font-bold break-all", currentTheme.isDark ? "text-amber-400" : "text-blue-600")}
                             >
                               <span>console.groq.com/keys</span>
-                              <ExternalLink className="w-3 h-3" />
+                              <ExternalLink className="w-3 h-3 shrink-0" />
                             </a>
                           </p>
                           <div className={cn("pt-2 border-t space-y-1", currentTheme.isDark ? "border-white/5" : "border-black/10")}>
@@ -3748,9 +3924,9 @@ const Translator = () => {
 
                 {activeSettingsTab === 'permissions' && (
                   <motion.div 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-6"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-6 min-w-0 w-full"
                   >
                     <div className="space-y-4">
                       <div className="flex items-center gap-2 mb-2">
@@ -3960,9 +4136,9 @@ const Translator = () => {
 
                 {activeSettingsTab === 'updates' && (
                   <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-6"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-6 min-w-0 w-full"
                   >
                     <div className="space-y-4">
                       <div className="flex items-center justify-between gap-2 pb-2 border-b border-black/5 dark:border-white/5">
@@ -3984,10 +4160,10 @@ const Translator = () => {
                       </div>
 
                       <div className={cn(
-                        "p-4 rounded-xl border flex items-center justify-between gap-3",
+                        "p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0 w-full",
                         isCyber ? "bg-black border-[#00f2ff]/30" : currentTheme.isDark ? "bg-white/5 border-white/10" : "bg-white border-gray-200 shadow-sm"
                       )}>
-                        <div>
+                        <div className="min-w-0">
                           <div className="text-xs opacity-70">{tSettings.currentVersionLabel}</div>
                           <div className="text-base font-mono font-bold mt-0.5 tabular-nums">v{APP_VERSION}</div>
                         </div>
@@ -4011,7 +4187,7 @@ const Translator = () => {
                             }
                           }}
                           className={cn(
-                            "min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shrink-0 disabled:opacity-60",
+                            "w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shrink-0 disabled:opacity-60",
                             isCyber
                               ? "bg-[#00f2ff] text-black hover:bg-[#00d8e6]"
                               : "bg-emerald-600 text-white hover:bg-emerald-700"
@@ -4024,27 +4200,27 @@ const Translator = () => {
 
                       {updateInfo?.hasUpdate && (
                         <div className={cn(
-                          "p-4 rounded-xl border flex items-center justify-between gap-3",
+                          "p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0 w-full",
                           isCyber
                             ? "bg-[#00f2ff]/10 border-[#00f2ff]/40 text-[#00f2ff]"
                             : currentTheme.isDark
                               ? "bg-emerald-500/15 border-emerald-500/35 text-emerald-200"
                               : "bg-emerald-50 border-emerald-200 text-emerald-900"
                         )}>
-                          <div className="text-xs font-bold tabular-nums">
+                          <div className="text-xs font-bold tabular-nums leading-relaxed min-w-0">
                             {tSettings.updateAvailableBanner(updateInfo.latestVersion)}
                           </div>
                           <button
                             type="button"
                             onClick={() => setIsUpdateDialogOpen(true)}
                             className={cn(
-                              "min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 transition-colors",
+                              "w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shrink-0 transition-colors",
                               isCyber
                                 ? "bg-[#00f2ff] text-black"
                                 : "bg-emerald-600 text-white hover:bg-emerald-700"
                             )}
                           >
-                            <Download className="w-3.5 h-3.5" />
+                            <Download className="w-3.5 h-3.5 shrink-0" />
                             <span>{tSettings.installUpdateNow}</span>
                           </button>
                         </div>

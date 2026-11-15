@@ -97,17 +97,24 @@ jobs:
       - name: Compute App Version Metadata
         id: meta
         run: |
-          BASE_MM=$(node -p "require('./package.json').version.split('.').slice(0,2).join('.')")
-          APP_VER="${BASE_MM}.${{ github.run_number }}"
+          APP_VER=$(node -e "const fs=require('fs');const s=fs.readFileSync('lib/app-config.ts','utf8');console.log(s.match(/APP_VERSION\s*=\s*'([^']+)'/)[1])")
+          VER_CODE=$(node -e "const fs=require('fs');const s=fs.readFileSync('lib/app-config.ts','utf8');const m=s.match(/ANDROID_VERSION_CODE\s*=\s*(\d+)/);console.log(m?m[1]:123)")
           TAG_NAME="v${APP_VER}"
-          VER_CODE=$((110 + ${{ github.run_number }}))
-          COMMIT_MSG=$(git log -1 --pretty=%B | head -n 20)
+          WHATS_NEW=$(node -e "const fs=require('fs');const s=fs.readFileSync('lib/app-config.ts','utf8');const m=s.match(/RELEASE_WHATS_NEW\s*=\s*\[([\s\S]*?)\]\.join/);if(m){const parts=Function('return ['+m[1]+']')();console.log(parts.join('\n\n'));}")
+          TARGET_REPO="${{ vars.RELEASE_REPO || github.repository }}"
+          RELEASE_CHECK=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}" "https://api.github.com/repos/${TARGET_REPO}/releases/tags/${TAG_NAME}")
+          SHOULD_RELEASE="true"
+          if [ "$RELEASE_CHECK" = "200" ]; then
+            SHOULD_RELEASE="false"
+            echo "Release ${TAG_NAME} already exists; skipping duplicate GitHub Release publish."
+          fi
           echo "version=${APP_VER}" >> $GITHUB_OUTPUT
           echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
           echo "version_code=${VER_CODE}" >> $GITHUB_OUTPUT
+          echo "should_release=${SHOULD_RELEASE}" >> $GITHUB_OUTPUT
           {
             echo 'changelog<<__CHANGELOG_EOF__'
-            echo "${COMMIT_MSG}"
+            echo "${WHATS_NEW}"
             echo '__CHANGELOG_EOF__'
           } >> $GITHUB_OUTPUT
 
@@ -117,7 +124,9 @@ jobs:
       - name: Build Static Web Bundle for Android
         run: |
           TARGET_REPO="${{ vars.RELEASE_REPO || github.repository }}"
-          printf "export const APP_VERSION = '%s';\nexport const DEFAULT_GITHUB_REPO = '%s';\n" "${{ steps.meta.outputs.version }}" "${TARGET_REPO}" > lib/app-config.ts
+          if [ -n "${TARGET_REPO}" ]; then
+            node -e "const fs=require('fs');let s=fs.readFileSync('lib/app-config.ts','utf8');s=s.replace(/DEFAULT_GITHUB_REPO\s*=\s*'[^']*'/, \"DEFAULT_GITHUB_REPO = '${TARGET_REPO}'\");fs.writeFileSync('lib/app-config.ts',s,'utf8');"
+          fi
           npm run build:capacitor
 
       - name: Initialize & Sync Capacitor Android Project
@@ -153,6 +162,7 @@ jobs:
           path: ME-Translator-${{ steps.meta.outputs.tag }}.apk
 
       - name: Publish GitHub Release with APK
+        if: steps.meta.outputs.should_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
           repository: ${{ vars.RELEASE_REPO || github.repository }}
@@ -160,9 +170,6 @@ jobs:
           tag_name: ${{ steps.meta.outputs.tag }}
           name: "ME Translator ${{ steps.meta.outputs.tag }}"
           body: |
-            ### What's New in ${{ steps.meta.outputs.tag }}
             ${{ steps.meta.outputs.changelog }}
-
-            **Direct Android Install:** Download `ME-Translator-${{ steps.meta.outputs.tag }}.apk` directly from inside the app or from the assets below.
           files: ME-Translator-${{ steps.meta.outputs.tag }}.apk
           make_latest: true
