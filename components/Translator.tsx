@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Languages, Trash2, Copy, Check, CheckCircle2, Info, Settings, X, Moon, Zap, Volume2, VolumeX, ChevronDown, Keyboard, Mic, MicOff, PlusCircle, AlertTriangle, Menu, MessageSquare, Eye, ClipboardPaste, Shield, Sparkles, User, Lock, Cpu, ExternalLink, Star, Search, History, ArrowLeftRight, RefreshCw, Download, Smartphone, WifiOff } from 'lucide-react'
+import { Send, Languages, Trash2, Copy, Check, CheckCircle2, Info, Settings, X, Moon, Zap, Volume2, VolumeX, ChevronDown, Keyboard, Mic, MicOff, PlusCircle, AlertTriangle, Menu, MessageSquare, Eye, ClipboardPaste, Shield, Sparkles, User, Lock, Cpu, ExternalLink, Star, Search, History, ArrowLeftRight, RefreshCw, Download, Smartphone, WifiOff, MessageCircle, Globe } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import ReactMarkdown from 'react-markdown'
 import { clsx, type ClassValue } from 'clsx'
@@ -455,7 +455,8 @@ const TRANSLATIONS = {
       audio: 'Audio',
       api: 'API',
       permissions: 'Permissions',
-      updates: 'Updates'
+      updates: 'Updates',
+      about: 'About'
     },
     appLanguage: 'App Language',
     appLangDesc: 'Interface display language',
@@ -584,6 +585,17 @@ const TRANSLATIONS = {
     iosInstallTitle: 'Install on iPhone / iPad',
     iosInstallSteps: '1. Tap the Share button in Safari.\n2. Scroll down and tap "Add to Home Screen".',
     offlineBanner: 'Offline Mode — History & saved chats remain available.',
+    aboutTitle: 'About & Developer',
+    aboutSubtitle: 'Application credits and developer contact channels',
+    copyrightText: '© 2026 ME Translator · All rights reserved.',
+    developerCredit: 'Built and maintained for fast, reliable Myanmar & multi-language AI translation.',
+    developerSectionTitle: 'Developer Contact',
+    facebookLabel: 'Facebook',
+    facebookSublabel: 'Connect via Facebook profile',
+    telegramLabel: 'Telegram',
+    openLink: 'Open',
+    copyHandle: 'Copy',
+    handleCopied: 'Copied',
   },
   my: {
     appTitle: 'ME ဘာသာပြန်စနစ်',
@@ -602,7 +614,8 @@ const TRANSLATIONS = {
       audio: 'အသံနှင့် လှုပ်ရှားမှု',
       api: 'API စနစ်',
       permissions: 'ခွင့်ပြုချက်များ',
-      updates: 'အပ်ဒိတ်'
+      updates: 'အပ်ဒိတ်',
+      about: 'အကြောင်း'
     },
     appLanguage: 'အက်ပ် စနစ်ဘာသာစကား',
     appLangDesc: 'မျက်နှာပြင်ပြသမှု ဘာသာစကား ရွေးချယ်ပါ',
@@ -731,6 +744,17 @@ const TRANSLATIONS = {
     iosInstallTitle: 'iPhone / iPad တွင် Install လုပ်နည်း',
     iosInstallSteps: '၁။ Safari ရှိ Share ခလုတ်ကို နှိပ်ပါ။\n၂။ အောက်သို့ဆွဲပြီး "Add to Home Screen" ကို ရွေးပါ။',
     offlineBanner: 'အင်တာနက် ချိတ်ဆက်မှု မရှိပါ — မှတ်တမ်းဟောင်းများကို ဆက်လက်ကြည့်ရှုနိုင်ပါသည်။',
+    aboutTitle: 'အက်ပ်အကြောင်းနှင့် မူပိုင်ခွင့်',
+    aboutSubtitle: 'Developer အချက်အလက်နှင့် ဆက်သွယ်ရန် လမ်းကြောင်းများ',
+    copyrightText: '© 2026 ME Translator · မူပိုင်ခွင့် အားလုံး ထိန်းသိမ်းထားသည်။',
+    developerCredit: 'မြန်မာနှင့် ဘာသာစကားစုံ AI ဘာသာပြန်စနစ်ကို မြန်ဆန်တိကျစွာ အသုံးပြုနိုင်ရန် ဖန်တီးထားပါသည်။',
+    developerSectionTitle: 'Developer နှင့် ဆက်သွယ်ရန်',
+    facebookLabel: 'Facebook',
+    facebookSublabel: 'Facebook အကောင့်သို့ ဝင်ရောက်ကြည့်ရှုရန်',
+    telegramLabel: 'Telegram',
+    openLink: 'ဖွင့်မည်',
+    copyHandle: 'ကူးယူမည်',
+    handleCopied: 'ကူးပြီး',
   }
 }
 
@@ -891,7 +915,8 @@ const Translator = () => {
   const [pasteError, setPasteError] = useState(false)
   const [micError, setMicError] = useState<string | null>(null)
   
-  const [activeSettingsTab, setActiveSettingsTab] = useState<'appearance' | 'audio' | 'api' | 'permissions' | 'updates'>('appearance')
+  const [activeSettingsTab, setActiveSettingsTab] = useState<'appearance' | 'audio' | 'api' | 'permissions' | 'updates' | 'about'>('appearance')
+  const [copiedDevContact, setCopiedDevContact] = useState<string | null>(null)
   const [activeDropdown, setActiveDropdown] = useState<'animation' | 'sound' | 'theme' | 'font' | 'mm-font' | 'model' | null>(null)
   
   const { isInstallable, isInstalled, isIOS, install: triggerPwaInstall } = usePWAInstall()
@@ -2402,12 +2427,6 @@ const Translator = () => {
               </button>
             </div>
           </form>
-          <p className={cn(
-            "text-[10px] text-center mt-3 flex items-center justify-center gap-1 transition-all duration-500",
-            currentTheme.textMuted
-          )}>
-            <Info className="w-3 h-3" /> {t.disclaimer(aiProvider === 'groq' ? 'Groq' : 'Gemini')}
-          </p>
         </div>
       </footer>
 
@@ -2881,13 +2900,16 @@ const Translator = () => {
                     { id: 'audio', label: tSettings.tabs.audio, icon: Volume2 },
                     { id: 'api', label: tSettings.tabs.api, icon: Zap },
                     { id: 'permissions', label: tSettings.tabs.permissions, icon: Shield },
-                    { id: 'updates', label: tSettings.tabs.updates, icon: Download }
+                    { id: 'updates', label: tSettings.tabs.updates, icon: Download },
+                    { id: 'about', label: tSettings.tabs.about, icon: Info }
                   ].map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveSettingsTab(tab.id as any)}
+                      title={tab.label}
+                      aria-label={tab.label}
                       className={cn(
-                        "flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-all duration-300 relative",
+                        "flex-1 min-h-[40px] flex items-center justify-center gap-1 py-2 px-1 rounded-lg text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all duration-300 relative whitespace-nowrap shrink-0",
                         activeSettingsTab === tab.id
                           ? (isCyber ? "bg-[#00f2ff] text-black shadow-[0_0_15px_#00f2ff]" : isGlass ? "bg-white/20 text-white shadow-lg" : isBrutal ? "bg-black text-white" : cn(currentTheme.accent, currentTheme.accentText))
                           : (isCyber ? "text-[#00f2ff]/50 hover:text-[#00f2ff] hover:bg-[#00f2ff]/10" : isGlass ? "text-white/40 hover:text-white hover:bg-white/5" : isBrutal ? "text-black/40 hover:text-black hover:bg-black/5" : cn(currentTheme.textMuted, "hover:bg-black/5"))
@@ -2896,9 +2918,9 @@ const Translator = () => {
                       {tab.id === 'api' ? (
                         <span className="text-[10px] font-black">API</span>
                       ) : (
-                        <tab.icon className="w-3.5 h-3.5" />
+                        <tab.icon className="w-3.5 h-3.5 shrink-0" />
                       )}
-                      <span className="hidden xs:inline">{tab.label}</span>
+                      <span className="hidden sm:inline truncate">{tab.label}</span>
                       {tab.id === 'updates' && updateInfo?.hasUpdate && (
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                       )}
@@ -4253,6 +4275,205 @@ const Translator = () => {
                       )}>
                         {tSettings.autoUpdateInfo}
                       </p>
+                    </div>
+
+                    <div className="pt-4 border-t border-black/10 dark:border-white/10">
+                      <button
+                        onClick={() => setIsSettingsOpen(false)}
+                        className={cn(
+                          "w-full py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          isCyber 
+                            ? "border border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10" 
+                            : isBrutal
+                              ? "border-2 border-black bg-white text-black font-bold hover:bg-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                              : currentTheme.isDark
+                                ? "bg-white/10 text-white hover:bg-white/20 border-white/10"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200"
+                        )}
+                      >
+                        {tSettings.close}
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeSettingsTab === 'about' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-6 min-w-0 w-full"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-2 pb-2 border-b border-black/5 dark:border-white/5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Info className={cn("w-4 h-4 shrink-0", isCyber ? "text-[#00f2ff]" : "text-emerald-500")} />
+                          <h4 className={cn(
+                            "text-sm font-bold uppercase tracking-widest truncate",
+                            isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-white" : "text-gray-900"
+                          )}>
+                            {tSettings.aboutTitle}
+                          </h4>
+                        </div>
+                        <span className={cn(
+                          "text-xs font-mono font-bold tabular-nums shrink-0",
+                          currentTheme.isDark ? "text-emerald-400" : "text-emerald-700"
+                        )}>
+                          v{APP_VERSION}
+                        </span>
+                      </div>
+
+                      {/* App Copyright & Identity Summary */}
+                      <div className={cn(
+                        "p-4 rounded-xl border space-y-2 min-w-0 w-full",
+                        isCyber
+                          ? "bg-black border-[#00f2ff]/30"
+                          : isBrutal
+                            ? "bg-white border-2 border-black rounded-none"
+                            : currentTheme.isDark
+                              ? "bg-white/5 border-white/10"
+                              : "bg-white border-gray-200 shadow-sm"
+                      )}>
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <span className="text-base font-bold tracking-tight">ME Translator</span>
+                          <span className={cn("text-xs tabular-nums", currentTheme.textMuted)}>
+                            {tSettings.aboutSubtitle}
+                          </span>
+                        </div>
+                        <p className={cn("text-xs leading-relaxed", currentTheme.textMuted)}>
+                          {tSettings.developerCredit}
+                        </p>
+                        <div className={cn(
+                          "pt-2 border-t text-xs font-medium tabular-nums",
+                          isCyber ? "border-[#00f2ff]/20 text-[#00f2ff]/90" : currentTheme.isDark ? "border-white/10 text-gray-300" : "border-gray-100 text-gray-700"
+                        )}>
+                          {tSettings.copyrightText}
+                        </div>
+                      </div>
+
+                      {/* Developer Contact Links */}
+                      <div className="space-y-2.5 min-w-0 w-full">
+                        <div className={cn(
+                          "text-xs font-bold uppercase tracking-wider px-1",
+                          currentTheme.textMuted
+                        )}>
+                          {tSettings.developerSectionTitle}
+                        </div>
+
+                        {/* Facebook Contact Row */}
+                        <a
+                          href="https://www.facebook.com/share/18gyVogMRn/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={cn(
+                            "w-full min-h-[60px] p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-colors min-w-0",
+                            isCyber
+                              ? "bg-black border-[#00f2ff]/30 hover:bg-[#00f2ff]/10 text-[#00f2ff]"
+                              : isBrutal
+                                ? "bg-white border-2 border-black hover:bg-gray-50 text-black rounded-none"
+                                : currentTheme.isDark
+                                  ? "bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                                  : "bg-white border-gray-200 hover:bg-gray-50 text-gray-900 shadow-sm"
+                          )}
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className={cn(
+                              "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                              isCyber ? "bg-[#00f2ff]/15 text-[#00f2ff]" : "bg-blue-500/15 text-blue-500"
+                            )}>
+                              <Globe className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-bold leading-snug">{tSettings.facebookLabel}</div>
+                              <div className={cn("text-xs truncate", currentTheme.textMuted)}>
+                                {tSettings.facebookSublabel}
+                              </div>
+                            </div>
+                          </div>
+                          <span className={cn(
+                            "inline-flex items-center gap-1.5 text-xs font-semibold shrink-0",
+                            isCyber ? "text-[#00f2ff]" : "text-blue-500"
+                          )}>
+                            <span>{tSettings.openLink}</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </span>
+                        </a>
+
+                        {/* Telegram Contact Row */}
+                        <div className={cn(
+                          "w-full min-h-[60px] p-3.5 rounded-xl border flex items-center justify-between gap-2 transition-colors min-w-0",
+                          isCyber
+                            ? "bg-black border-[#00f2ff]/30 text-[#00f2ff]"
+                            : isBrutal
+                              ? "bg-white border-2 border-black text-black rounded-none"
+                              : currentTheme.isDark
+                                ? "bg-white/5 border-white/10 text-white"
+                                : "bg-white border-gray-200 text-gray-900 shadow-sm"
+                        )}>
+                          <a
+                            href="https://t.me/maweoo"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 min-w-0 flex-1 min-h-[44px]"
+                          >
+                            <div className={cn(
+                              "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                              isCyber ? "bg-[#00f2ff]/15 text-[#00f2ff]" : "bg-sky-500/15 text-sky-500"
+                            )}>
+                              <MessageCircle className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-bold leading-snug">{tSettings.telegramLabel}</div>
+                              <div className={cn("text-xs font-mono truncate", currentTheme.textMuted)}>
+                                @maweoo
+                              </div>
+                            </div>
+                          </a>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard?.writeText('@maweoo').catch(() => {})
+                                setCopiedDevContact('tg')
+                                setTimeout(() => setCopiedDevContact(null), 1800)
+                              }}
+                              className={cn(
+                                "min-h-[44px] px-3 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors",
+                                isCyber
+                                  ? "hover:bg-[#00f2ff]/10 text-[#00f2ff]"
+                                  : currentTheme.isDark
+                                    ? "hover:bg-white/10 text-gray-300"
+                                    : "hover:bg-gray-100 text-gray-700"
+                              )}
+                            >
+                              {copiedDevContact === 'tg' ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                  <span className="text-emerald-500">{tSettings.handleCopied}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3.5 h-3.5" />
+                                  <span>{tSettings.copyHandle}</span>
+                                </>
+                              )}
+                            </button>
+                            <a
+                              href="https://t.me/maweoo"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label="Open Telegram @maweoo"
+                              className={cn(
+                                "min-h-[44px] min-w-[44px] px-3 py-2 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1 transition-colors",
+                                isCyber
+                                  ? "bg-[#00f2ff] text-black"
+                                  : "bg-sky-600 text-white hover:bg-sky-700"
+                              )}
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="pt-4 border-t border-black/10 dark:border-white/10">
