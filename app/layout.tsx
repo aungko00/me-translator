@@ -13,6 +13,7 @@ import {
   Poppins
 } from 'next/font/google'
 import './globals.css'; // Global styles
+import GoogleAnalytics from '@/components/GoogleAnalytics';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' })
@@ -58,6 +59,14 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
+  const gaMeasurementId =
+    process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ||
+    process.env.GA_MEASUREMENT_ID ||
+    process.env.GA4_MEASUREMENT_ID ||
+    process.env.G4_MEASUREMENT_ID ||
+    process.env.G4 ||
+    '';
+
   return (
     <html lang="en" suppressHydrationWarning className={`
       ${inter.variable} 
@@ -73,7 +82,10 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
       ${poppins.variable}
       h-full overflow-hidden overscroll-none
     `}>
-      <body suppressHydrationWarning className="bg-[#212121] text-white font-sans fixed inset-0 w-full h-full overflow-hidden overscroll-none">{children}</body>
+      <body suppressHydrationWarning className="bg-[#212121] text-white font-sans fixed inset-0 w-full h-full overflow-hidden overscroll-none">
+        <GoogleAnalytics measurementId={gaMeasurementId} />
+        {children}
+      </body>
     </html>
   );
 }

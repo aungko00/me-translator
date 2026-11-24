@@ -1,11 +1,11 @@
-export const APP_VERSION = '1.1.17';
-export const ANDROID_VERSION_CODE = 127;
+export const APP_VERSION = '1.1.18';
+export const ANDROID_VERSION_CODE = 128;
 export const DEFAULT_GITHUB_REPO = 'aungko00/me-translator';
 
 export const RELEASE_WHATS_NEW =
-  '• Animation Sound: Pick any sound style or Silent directly without an On/Off toggle.\n' +
-  '• Keyboard Stability: Fixed screen jumping and kept your chat position steady while typing.\n' +
-  '• Settings Layout: Pinned section headers and Save/Close buttons with clean middle scrolling.\n\n' +
-  '• Animation Sound: On/Off နှိပ်စရာမလိုဘဲ စိတ်ကြိုက်အသံများနှင့် Silent ကို တိုက်ရိုက်ရွေးချယ်နိုင်ပါပြီ။\n' +
-  '• Keyboard Stability: စာရိုက်ချိန် Screen ခုန်ခြင်းနှင့် အောက်ဆုံးသို့ Scroll ဆင်းသွားခြင်းကို ပြင်ဆင်ပြီးပါပြီ။\n' +
-  '• Settings Layout: ခေါင်းစဉ်များနှင့် Save/Close ခလုတ်များကို နေရာအသေထား၍ အလယ်ပိုင်းသာ Scroll ဆွဲနိုင်ပါပြီ။';
+  '• Conversation Rename: Added an Edit button to rename saved chats anytime from a quick popup.\n' +
+  '• Touch & Hover Polish: Added theme-matched button hover and press effects while preventing accidental text selection.\n' +
+  '• Settings & About: Dropdowns now float cleanly over Save and Close buttons on smaller screens, plus a new AI accuracy notice in About.\n\n' +
+  '• စကားပြောခန်း အမည်ပြောင်းခြင်း - သိမ်းဆည်းထားသော စကားပြောခန်းများကို အချိန်မရွေး အမည်ပြောင်းနိုင်ပါပြီ။\n' +
+  '• ခလုတ်ဒီဇိုင်းနှင့် ထိတွေ့မှု - ခလုတ်များတွင် အပြင်အဆင်အလိုက် တုံ့ပြန်မှုပုံစံသစ်များ ထည့်သွင်းပြီး မလိုအပ်ဘဲ စာသားရွေးမိခြင်းကို ပိတ်ထားပါပြီ။\n' +
+  '• ဆက်တင်နှင့် အသိပေးချက် - ဖန်သားပြင်သေးချိန် ရွေးချယ်မှုစာရင်းများ အပေါ်မှ ရှင်းလင်းစွာပေါ်စေပြီး ဘာသာပြန်တိကျမှုဆိုင်ရာ အသိပေးချက် ထည့်သွင်းထားပါပြီ။';

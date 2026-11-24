@@ -9,3 +9,4 @@ coverage/
 out/
 android/
 .api-backup-tmp/
+public/assets/aistudio/

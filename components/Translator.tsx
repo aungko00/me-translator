@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Languages, Trash2, Copy, Check, CheckCircle2, Info, Settings, X, Moon, Zap, Volume2, VolumeX, ChevronDown, Keyboard, Mic, MicOff, PlusCircle, AlertTriangle, Menu, MessageSquare, Eye, ClipboardPaste, Shield, Sparkles, User, Lock, Cpu, ExternalLink, Star, Search, History, ArrowLeftRight, RefreshCw, Download, Smartphone, WifiOff, MessageCircle, Globe } from 'lucide-react'
+import { createPortal } from 'react-dom'
+import { Send, Languages, Trash2, Copy, Check, CheckCircle2, Info, Settings, X, Moon, Zap, Volume2, VolumeX, ChevronDown, Keyboard, Mic, MicOff, PlusCircle, AlertTriangle, Menu, MessageSquare, Eye, ClipboardPaste, Shield, Sparkles, User, Lock, Cpu, ExternalLink, Star, Search, History, ArrowLeftRight, RefreshCw, Download, Smartphone, WifiOff, MessageCircle, Globe, Pencil } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import ReactMarkdown from 'react-markdown'
 import { clsx, type ClassValue } from 'clsx'
@@ -20,6 +21,7 @@ import {
   getSkippedUpdateVersion,
   isRunningInsideCapacitor,
 } from '@/lib/app-update'
+import { trackTranslationCompleted } from '@/lib/analytics'
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -291,6 +293,49 @@ const THEME_CONFIG = {
     shadow: 'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
     isDark: false
   }
+}
+
+const THEME_HOVER_STYLES: Record<keyof typeof THEME_CONFIG, { primary: string; surface: string; icon: string }> = {
+  default: {
+    primary: 'hover:-translate-y-0.5 hover:shadow-[0_6px_18px_rgba(16,185,129,0.35)] hover:brightness-110 active:translate-y-0 active:scale-[0.98] active:shadow-[0_0_18px_rgba(16,185,129,0.45)] active:brightness-95 motion-reduce:transform-none',
+    surface: 'hover:-translate-y-0.5 hover:border-emerald-400/50 hover:shadow-[0_4px_12px_rgba(16,185,129,0.16)] active:translate-y-0 active:scale-[0.98] active:border-emerald-400/70 active:shadow-[0_0_14px_rgba(16,185,129,0.28)] motion-reduce:transform-none',
+    icon: 'hover:-translate-y-0.5 hover:shadow-[0_2px_10px_rgba(16,185,129,0.22)] active:scale-90 active:shadow-[0_0_12px_rgba(16,185,129,0.35)] motion-reduce:transform-none',
+  },
+  cyberpunk: {
+    primary: 'hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(0,242,255,0.65)] active:translate-y-0 active:scale-[0.98] active:shadow-[0_0_28px_rgba(0,242,255,0.85)] motion-reduce:transform-none',
+    surface: 'hover:-translate-y-0.5 hover:border-[#00f2ff] hover:shadow-[0_0_16px_rgba(0,242,255,0.38)] active:translate-y-0 active:scale-[0.98] active:border-[#00f2ff] active:shadow-[0_0_20px_rgba(0,242,255,0.55)] motion-reduce:transform-none',
+    icon: 'hover:-translate-y-0.5 hover:shadow-[0_0_12px_rgba(0,242,255,0.45)] active:scale-90 active:shadow-[0_0_16px_rgba(0,242,255,0.65)] motion-reduce:transform-none',
+  },
+  'soft-minimal': {
+    primary: 'hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(90,90,64,0.3)] hover:brightness-105 active:translate-y-0 active:scale-[0.98] active:shadow-[0_0_16px_rgba(90,90,64,0.38)] active:brightness-95 motion-reduce:transform-none',
+    surface: 'hover:-translate-y-0.5 hover:border-[#5A5A40]/50 hover:shadow-[0_4px_12px_rgba(90,90,64,0.14)] active:translate-y-0 active:scale-[0.98] active:border-[#5A5A40]/70 active:shadow-[0_0_14px_rgba(90,90,64,0.24)] motion-reduce:transform-none',
+    icon: 'hover:-translate-y-0.5 hover:shadow-[0_2px_8px_rgba(90,90,64,0.16)] active:scale-90 active:shadow-[0_0_12px_rgba(90,90,64,0.28)] motion-reduce:transform-none',
+  },
+  light: {
+    primary: 'hover:-translate-y-0.5 hover:shadow-[0_6px_18px_rgba(37,99,235,0.32)] active:translate-y-0 active:scale-[0.98] active:shadow-[0_0_18px_rgba(37,99,235,0.42)] motion-reduce:transform-none',
+    surface: 'hover:-translate-y-0.5 hover:border-blue-400/60 hover:shadow-[0_4px_12px_rgba(37,99,235,0.14)] active:translate-y-0 active:scale-[0.98] active:border-blue-500/70 active:shadow-[0_0_14px_rgba(37,99,235,0.26)] motion-reduce:transform-none',
+    icon: 'hover:-translate-y-0.5 hover:shadow-[0_2px_10px_rgba(37,99,235,0.18)] active:scale-90 active:shadow-[0_0_12px_rgba(37,99,235,0.32)] motion-reduce:transform-none',
+  },
+  dark: {
+    primary: 'hover:-translate-y-0.5 hover:shadow-[0_0_18px_rgba(255,255,255,0.28)] active:translate-y-0 active:scale-[0.98] active:shadow-[0_0_22px_rgba(255,255,255,0.4)] motion-reduce:transform-none',
+    surface: 'hover:-translate-y-0.5 hover:border-white/50 hover:shadow-[0_4px_14px_rgba(255,255,255,0.14)] active:translate-y-0 active:scale-[0.98] active:border-white/65 active:shadow-[0_0_16px_rgba(255,255,255,0.24)] motion-reduce:transform-none',
+    icon: 'hover:-translate-y-0.5 hover:shadow-[0_2px_10px_rgba(255,255,255,0.18)] active:scale-90 active:shadow-[0_0_14px_rgba(255,255,255,0.3)] motion-reduce:transform-none',
+  },
+  midnight: {
+    primary: 'hover:-translate-y-0.5 hover:shadow-[0_6px_18px_rgba(88,101,242,0.42)] active:translate-y-0 active:scale-[0.98] active:shadow-[0_0_20px_rgba(88,101,242,0.55)] motion-reduce:transform-none',
+    surface: 'hover:-translate-y-0.5 hover:border-[#5865f2]/60 hover:shadow-[0_4px_14px_rgba(88,101,242,0.22)] active:translate-y-0 active:scale-[0.98] active:border-[#5865f2]/80 active:shadow-[0_0_16px_rgba(88,101,242,0.36)] motion-reduce:transform-none',
+    icon: 'hover:-translate-y-0.5 hover:shadow-[0_2px_10px_rgba(88,101,242,0.28)] active:scale-90 active:shadow-[0_0_14px_rgba(88,101,242,0.4)] motion-reduce:transform-none',
+  },
+  'glass-modern': {
+    primary: 'hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(129,140,248,0.45)] hover:brightness-110 active:translate-y-0 active:scale-[0.98] active:shadow-[0_0_24px_rgba(129,140,248,0.6)] motion-reduce:transform-none',
+    surface: 'hover:-translate-y-0.5 hover:border-white/35 hover:shadow-[0_6px_20px_rgba(99,102,241,0.22)] active:translate-y-0 active:scale-[0.98] active:border-white/50 active:shadow-[0_0_18px_rgba(129,140,248,0.36)] motion-reduce:transform-none',
+    icon: 'hover:-translate-y-0.5 hover:shadow-[0_4px_12px_rgba(165,180,252,0.25)] active:scale-90 active:shadow-[0_0_14px_rgba(165,180,252,0.4)] motion-reduce:transform-none',
+  },
+  brutalist: {
+    primary: 'hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none motion-reduce:transform-none',
+    surface: 'hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none motion-reduce:transform-none',
+    icon: 'hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none motion-reduce:transform-none',
+  },
 }
 
 const ENGLISH_FONT_OPTIONS = [
@@ -613,6 +658,12 @@ const TRANSLATIONS = {
     openLink: 'Open',
     copyHandle: 'Copy',
     handleCopied: 'Copied',
+    editChatTooltip: 'Rename conversation',
+    renameTitle: 'Rename Conversation',
+    renamePlaceholder: 'Enter conversation name...',
+    saveName: 'Save',
+    aiNoticeTitle: 'AI Translation & Accuracy Notice',
+    aiNoticeBody: 'ME Translator is powered by multiple AI providers and models (such as Google Gemini and Groq Cloud). Because different AI models vary in phrasing, tone, and context understanding, translations are not guaranteed to be 100% accurate. Please review important, official, legal, or medical details independently.',
   },
   my: {
     appTitle: 'ME ဘာသာပြန်စနစ်',
@@ -772,6 +823,12 @@ const TRANSLATIONS = {
     openLink: 'ဖွင့်မည်',
     copyHandle: 'ကူးယူမည်',
     handleCopied: 'ကူးပြီး',
+    editChatTooltip: 'စကားပြောခန်း အမည်ပြောင်းမည်',
+    renameTitle: 'စကားပြောခန်း အမည်ပြောင်းမည်',
+    renamePlaceholder: 'စကားပြောခန်း အမည်အသစ် ရိုက်ထည့်ပါ...',
+    saveName: 'သိမ်းဆည်းမည်',
+    aiNoticeTitle: 'AI ဘာသာပြန်စနစ်ဆိုင်ရာ သိကောင်းစရာ',
+    aiNoticeBody: 'ME Translator သည် AI ဘာသာပြန်စနစ်ဖြစ်ပြီး အသုံးပြုထားသော API နှင့် AI Model အမျိုးအစားများ (ဥပမာ - Google Gemini နှင့် Groq Cloud) မတူညီမှုအပေါ် မူတည်၍ စကားလုံးအသုံးအနှုန်းနှင့် ဘာသာပြန်ရလဒ်များ ကွဲပြားနိုင်ပါသည်။ ထို့ကြောင့် ဘာသာပြန်ဆိုမှုတိုင်းသည် 100% ရာနှုန်းပြည့် တိကျမှန်ကန်သည်ဟု အာမမခံနိုင်ပါသဖြင့် အရေးကြီးသော စာရွက်စာတမ်းများနှင့် တရားဝင်အချက်အလက်များအတွက် ပြန်လည်စစ်ဆေးအသုံးပြုပေးပါရန် အသိပေးအပ်ပါသည်။',
   }
 }
 
@@ -933,6 +990,120 @@ const Translator = () => {
   const [activeSettingsTab, setActiveSettingsTab] = useState<'appearance' | 'audio' | 'api' | 'permissions' | 'updates' | 'about'>('appearance')
   const [copiedDevContact, setCopiedDevContact] = useState<string | null>(null)
   const [activeDropdown, setActiveDropdown] = useState<'animation' | 'sound' | 'theme' | 'font' | 'mm-font' | 'model' | null>(null)
+  const dropdownTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const [dropdownCoords, setDropdownCoords] = useState<{
+    top: number
+    left: number
+    width: number
+    maxHeight: number
+    openUpward: boolean
+  } | null>(null)
+  const [isClientMounted, setIsClientMounted] = useState(false)
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null)
+  const [renameTitleInput, setRenameTitleInput] = useState('')
+  const renameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setIsClientMounted(true)
+  }, [])
+
+  const computeDropdownCoords = useCallback(() => {
+    const trigger = dropdownTriggerRef.current
+    if (!trigger || typeof window === 'undefined') return
+    const rect = trigger.getBoundingClientRect()
+    const viewportH = window.visualViewport?.height || window.innerHeight
+    const viewportW = window.visualViewport?.width || window.innerWidth
+    const spaceBelow = viewportH - rect.bottom - 12
+    const spaceAbove = rect.top - 12
+    const openUpward = spaceBelow < 180 && spaceAbove > spaceBelow
+    const maxHeight = openUpward
+      ? Math.min(288, Math.max(150, spaceAbove))
+      : Math.min(300, Math.max(150, spaceBelow))
+    const width = Math.min(rect.width, viewportW - 24)
+    const left = Math.max(12, Math.min(rect.left, viewportW - width - 12))
+    const top = openUpward
+      ? Math.max(12, rect.top - maxHeight - 6)
+      : rect.bottom + 6
+
+    setDropdownCoords({
+      top,
+      left,
+      width,
+      maxHeight,
+      openUpward,
+    })
+  }, [])
+
+  const toggleSettingsDropdown = (
+    id: 'animation' | 'theme' | 'font' | 'mm-font' | 'model',
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    if (activeDropdown === id) {
+      setActiveDropdown(null)
+      return
+    }
+    dropdownTriggerRef.current = e.currentTarget
+    computeDropdownCoords()
+    setActiveDropdown(id)
+  }
+
+  useEffect(() => {
+    if (!activeDropdown) {
+      setDropdownCoords(null)
+      return
+    }
+    computeDropdownCoords()
+    const handleReposition = () => computeDropdownCoords()
+    const handleKeyDownDropdown = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') {
+        setActiveDropdown(null)
+      }
+    }
+    window.addEventListener('resize', handleReposition)
+    window.visualViewport?.addEventListener('resize', handleReposition)
+    window.addEventListener('keydown', handleKeyDownDropdown)
+    return () => {
+      window.removeEventListener('resize', handleReposition)
+      window.visualViewport?.removeEventListener('resize', handleReposition)
+      window.removeEventListener('keydown', handleKeyDownDropdown)
+    }
+  }, [activeDropdown, computeDropdownCoords])
+
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      setActiveDropdown(null)
+    }
+  }, [isSettingsOpen])
+
+  useEffect(() => {
+    if (!renamingSessionId) return
+    const timer = setTimeout(() => {
+      renameInputRef.current?.focus()
+      renameInputRef.current?.select()
+    }, 60)
+    const handleEsc = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape') setRenamingSessionId(null)
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('keydown', handleEsc)
+    }
+  }, [renamingSessionId])
+
+  const openRenameDialog = (session: ChatSession, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setRenamingSessionId(session.id)
+    setRenameTitleInput(session.title)
+  }
+
+  const saveSessionRename = (e?: React.FormEvent) => {
+    e?.preventDefault()
+    const trimmed = renameTitleInput.trim()
+    if (!renamingSessionId || !trimmed) return
+    setSessions(prev => prev.map(s => s.id === renamingSessionId ? { ...s, title: trimmed } : s))
+    setRenamingSessionId(null)
+  }
   
   const { isInstallable, isInstalled, isIOS, install: triggerPwaInstall } = usePWAInstall()
   const isOnline = useOnlineStatus()
@@ -1868,6 +2039,13 @@ const Translator = () => {
           ? { ...m, content: translation, isPending: false, timestamp: new Date() }
           : m
       ))
+
+      trackTranslationCompleted({
+        provider: activeProvider,
+        sourceLang: msgSourceLang,
+        targetLang: msgTargetLang,
+        uiLanguage: appLang,
+      })
       
       // For non-typing animations, play a single sound at the start
       if (soundEnabled && animation !== 'typing' && animation !== 'typewriter') {
@@ -1963,6 +2141,7 @@ const Translator = () => {
   const isCyber = theme === 'cyberpunk'
   const isGlass = theme === 'glass-modern'
   const isBrutal = theme === 'brutalist'
+  const themeHover = THEME_HOVER_STYLES[theme] || THEME_HOVER_STYLES.default
   const currentTheme = THEME_CONFIG[theme]
   const currentFont = ENGLISH_FONT_OPTIONS.find(f => f.id === fontStyle) || ENGLISH_FONT_OPTIONS[0]
   const currentMyanmarFont = MYANMAR_FONT_OPTIONS.find(f => f.id === myanmarFont) || MYANMAR_FONT_OPTIONS[0]
@@ -2037,8 +2216,9 @@ const Translator = () => {
           <button 
             onClick={() => setIsSidebarOpen(true)}
             className={cn(
-              "p-2 rounded-lg transition-all",
-              isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : "text-gray-400 hover:bg-black/5"
+              "p-2 rounded-lg transition-all duration-200",
+              themeHover.icon,
+              isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-300 hover:bg-white/10" : "text-gray-600 hover:bg-black/5"
             )}
           >
             <Menu className="w-5 h-5" />
@@ -2079,7 +2259,8 @@ const Translator = () => {
                 type="button"
                 onClick={() => setChatLangDropdown(prev => prev === 'source' ? null : 'source')}
                 className={cn(
-                  "flex items-center gap-1 px-2 sm:px-2.5 min-h-[38px] rounded-lg text-xs font-bold whitespace-nowrap transition-colors",
+                  "flex items-center gap-1 px-2 sm:px-2.5 min-h-[38px] rounded-lg text-xs font-bold whitespace-nowrap transition-all duration-200",
+                  themeHover.icon,
                   chatLangDropdown === 'source'
                     ? (isCyber ? "bg-[#00f2ff]/20 text-[#00f2ff]" : currentTheme.isDark ? "bg-white/15 text-white" : "bg-white text-black shadow-sm")
                     : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-200 hover:bg-white/10" : "text-gray-800 hover:bg-black/5")
@@ -2102,7 +2283,8 @@ const Translator = () => {
                   setChatLangDropdown(null)
                 }}
                 className={cn(
-                  "px-1.5 min-h-[38px] min-w-[32px] flex items-center justify-center rounded-lg transition-colors",
+                  "px-1.5 min-h-[38px] min-w-[32px] flex items-center justify-center rounded-lg transition-all duration-200",
+                  themeHover.icon,
                   isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-emerald-400 hover:bg-white/10" : "text-[#5A5A40] hover:bg-black/5"
                 )}
                 title={t.swapDirection}
@@ -2115,7 +2297,8 @@ const Translator = () => {
                 type="button"
                 onClick={() => setChatLangDropdown(prev => prev === 'target' ? null : 'target')}
                 className={cn(
-                  "flex items-center gap-1 px-2 sm:px-2.5 min-h-[38px] rounded-lg text-xs font-bold whitespace-nowrap transition-colors",
+                  "flex items-center gap-1 px-2 sm:px-2.5 min-h-[38px] rounded-lg text-xs font-bold whitespace-nowrap transition-all duration-200",
+                  themeHover.icon,
                   chatLangDropdown === 'target'
                     ? (isCyber ? "bg-[#00f2ff]/20 text-[#00f2ff]" : currentTheme.isDark ? "bg-white/15 text-white" : "bg-white text-black shadow-sm")
                     : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-200 hover:bg-white/10" : "text-gray-800 hover:bg-black/5")
@@ -2199,10 +2382,11 @@ const Translator = () => {
             type="button"
             onClick={(e) => toggleSessionFavorite(activeSession.id, e)}
             className={cn(
-              "p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-all",
+              "p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-all duration-200",
+              themeHover.icon,
               activeSession.isFavorite
                 ? (isCyber ? "text-amber-400 bg-amber-400/10" : "text-amber-500 hover:bg-amber-500/10")
-                : (isCyber ? "text-[#00f2ff]/70 hover:bg-[#00f2ff]/10" : "text-gray-400 hover:bg-black/5")
+                : (isCyber ? "text-[#00f2ff]/70 hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-400 hover:bg-white/10" : "text-gray-500 hover:bg-black/5")
             )}
             title={activeSession.isFavorite ? t.removeFavorite : t.addFavorite}
             aria-label={activeSession.isFavorite ? t.removeFavorite : t.addFavorite}
@@ -2213,8 +2397,9 @@ const Translator = () => {
           <button 
             onClick={() => setIsSettingsOpen(true)}
             className={cn(
-              "p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-all",
-              isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : "text-gray-400 hover:bg-black/5"
+              "p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-all duration-200",
+              themeHover.icon,
+              isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-400 hover:bg-white/10" : "text-gray-500 hover:bg-black/5"
             )}
             title={t.settings}
           >
@@ -2265,10 +2450,15 @@ const Translator = () => {
                     key={i}
                     onClick={() => setInput(suggestion)}
                     className={cn(
-                      "p-3 sm:p-4 text-left text-xs sm:text-sm rounded-xl transition-all border",
+                      "p-3 sm:p-4 text-left text-xs sm:text-sm rounded-xl transition-all duration-200 border",
+                      themeHover.surface,
                       isCyber 
                         ? "bg-black hover:bg-[#00f2ff]/10 border-[#00f2ff]/30 text-[#00f2ff] hover:border-[#00f2ff]" 
-                        : (currentTheme.isDark ? "bg-[#2f2f2f] hover:bg-[#383838] border-white/10 text-gray-300" : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700")
+                        : isBrutal
+                          ? "bg-white border-2 border-black text-black hover:bg-yellow-50 rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                          : currentTheme.isDark
+                            ? "bg-[#2f2f2f] hover:bg-[#383838] border-white/10 text-gray-300"
+                            : "bg-white hover:bg-gray-50 border-gray-200 text-gray-700"
                     )}
                   >
                     {suggestion}
@@ -2546,8 +2736,9 @@ const Translator = () => {
                   }
                 }}
                 className={cn(
-                  "p-1.5 sm:p-2 rounded-xl transition-all duration-500 border",
-                  isCyber ? "bg-black text-[#00f2ff] border-[#00f2ff] hover:bg-[#00f2ff] hover:text-black" : (currentTheme.isDark ? "bg-white/5 text-gray-400 hover:bg-white/10 border-transparent" : "bg-black/5 text-gray-500 hover:bg-black/10 border-transparent")
+                  "p-1.5 sm:p-2 rounded-xl transition-all duration-200 border",
+                  themeHover.icon,
+                  isCyber ? "bg-black text-[#00f2ff] border-[#00f2ff] hover:bg-[#00f2ff] hover:text-black" : isBrutal ? "bg-white text-black border-2 border-black hover:bg-gray-100" : (currentTheme.isDark ? "bg-white/5 text-gray-300 hover:bg-white/10 border-transparent" : "bg-black/5 text-gray-600 hover:bg-black/10 border-transparent")
                 )}
                 title={t.pasteTooltipMain}
               >
@@ -2557,10 +2748,11 @@ const Translator = () => {
                 type="button"
                 onClick={startListening}
                 className={cn(
-                  "p-2 sm:p-3 rounded-xl transition-all duration-500 border",
+                  "p-2 sm:p-3 rounded-xl transition-all duration-200 border",
+                  themeHover.icon,
                   isListening
-                    ? (isCyber ? "bg-red-500 text-black animate-pulse shadow-[0_0_20px_#ef4444] border-red-500" : "bg-red-500 text-white animate-pulse")
-                    : (isCyber ? "bg-black text-[#00f2ff] border-[#00f2ff] hover:shadow-[0_0_15px_#00f2ff] hover:bg-[#00f2ff] hover:text-black" : (currentTheme.isDark ? "bg-white/5 text-gray-400 hover:bg-white/10 border-transparent" : "bg-black/5 text-gray-500 hover:bg-black/10 border-transparent"))
+                    ? (isCyber ? "bg-red-500 text-black animate-pulse shadow-[0_0_20px_#ef4444] border-red-500" : "bg-red-500 text-white animate-pulse border-transparent")
+                    : (isCyber ? "bg-black text-[#00f2ff] border-[#00f2ff] hover:bg-[#00f2ff] hover:text-black" : isBrutal ? "bg-white text-black border-2 border-black hover:bg-gray-100" : (currentTheme.isDark ? "bg-white/5 text-gray-300 hover:bg-white/10 border-transparent" : "bg-black/5 text-gray-600 hover:bg-black/10 border-transparent"))
                 )}
                 title={t.voiceTooltip}
               >
@@ -2570,10 +2762,13 @@ const Translator = () => {
                 type="submit"
                 disabled={!input.trim()}
                 className={cn(
-                  "p-2 sm:p-3 rounded-xl transition-all duration-500 border",
+                  "p-2 sm:p-3 rounded-xl transition-all duration-200 border",
                   input.trim()
-                    ? (isCyber ? "bg-[#00f2ff] text-black shadow-[0_0_15px_#00f2ff] border-[#00f2ff]" : currentTheme.accent + " " + currentTheme.accentText + " border-transparent") 
-                    : (isCyber ? "bg-black text-[#00f2ff]/30 border-[#00f2ff]/30 cursor-not-allowed" : "bg-gray-200 text-gray-400 cursor-not-allowed border-transparent")
+                    ? cn(
+                        themeHover.primary,
+                        isCyber ? "bg-[#00f2ff] text-black shadow-[0_0_15px_#00f2ff] border-[#00f2ff]" : isBrutal ? cn(currentTheme.accent, currentTheme.accentText, "border-2 border-black") : cn(currentTheme.accent, currentTheme.accentText, "border-transparent")
+                      )
+                    : (isCyber ? "bg-black text-[#00f2ff]/30 border-[#00f2ff]/30 cursor-not-allowed" : currentTheme.isDark ? "bg-white/10 text-gray-500 cursor-not-allowed border-transparent" : "bg-gray-200 text-gray-400 cursor-not-allowed border-transparent")
                 )}
               >
                 <Send className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -2618,8 +2813,9 @@ const Translator = () => {
                 <button 
                   onClick={() => setIsSidebarOpen(false)}
                   className={cn(
-                    "p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-all",
-                    isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : "text-gray-400 hover:bg-black/5"
+                    "p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-all duration-200",
+                    themeHover.icon,
+                    isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-300 hover:bg-white/10" : "text-gray-600 hover:bg-black/5"
                   )}
                 >
                   <X className="w-5 h-5" />
@@ -2630,11 +2826,13 @@ const Translator = () => {
                 <button 
                   onClick={createNewSession}
                   className={cn(
-                    "w-full flex items-center justify-center gap-2 py-3 min-h-[44px] rounded-xl font-bold uppercase tracking-wider transition-all duration-500",
+                    "w-full flex items-center justify-center gap-2 py-3 min-h-[44px] rounded-xl font-bold uppercase tracking-wider transition-all duration-200",
                     currentTheme.accent,
                     currentTheme.accentText,
                     currentTheme.accentHover,
-                    isCyber && "shadow-[0_0_15px_#00f2ff] hover:shadow-[0_0_25px_#00f2ff]"
+                    themeHover.primary,
+                    isBrutal && "border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                    isCyber && "shadow-[0_0_15px_#00f2ff]"
                   )}
                 >
                   <PlusCircle className="w-5 h-5" />
@@ -2781,51 +2979,80 @@ const Translator = () => {
                             <span>{formattedDate}</span>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={(e) => toggleSessionFavorite(session.id, e)}
-                          title={session.isFavorite ? t.removeFavorite : t.addFavorite}
-                          aria-label={session.isFavorite ? t.removeFavorite : t.addFavorite}
-                          className={cn(
-                            "p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg transition-all duration-200 shrink-0",
-                            session.isFavorite
-                              ? (isActive && !isCyber ? "text-amber-300 hover:bg-black/15" : "text-amber-400 hover:bg-amber-400/10")
-                              : (isActive ? "opacity-70 hover:opacity-100 hover:bg-black/15" : "opacity-60 group-hover:opacity-100 hover:bg-black/10")
-                          )}
-                        >
-                          <Star className={cn("w-4 h-4", session.isFavorite && "fill-current")} />
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={(e) => deleteSession(session.id, e)}
-                          title={t.deleteChatTooltip}
-                          aria-label={t.deleteChatTooltip}
-                          className={cn(
-                            "p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg transition-all duration-200 shrink-0 border",
-                            "opacity-80 group-hover:opacity-100 focus:opacity-100",
-                            isActive
-                              ? isCyber
-                                ? "bg-[#ff0055]/20 text-[#ff0055] border-[#ff0055]/40 hover:bg-[#ff0055] hover:text-black shadow-[0_0_10px_rgba(255,0,85,0.4)]"
-                                : isBrutal
-                                  ? "bg-black text-white border-black hover:bg-red-600 hover:border-black"
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => openRenameDialog(session, e)}
+                            title={t.editChatTooltip}
+                            aria-label={t.editChatTooltip}
+                            className={cn(
+                              "p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg transition-all duration-200 shrink-0",
+                              themeHover.icon,
+                              isActive
+                                ? isCyber
+                                  ? "text-[#00f2ff] hover:bg-[#00f2ff]/15"
                                   : theme === 'dark'
-                                    ? "bg-black/10 text-red-600 border border-black/30 hover:bg-red-600 hover:text-white"
-                                    : currentTheme.isDark
-                                      ? "bg-white/10 text-white hover:bg-red-500/30 hover:text-red-300 border-white/20"
-                                      : "bg-black/10 text-white hover:bg-red-600 hover:text-white border-black/10"
-                              : isCyber
-                                ? "bg-black/60 text-[#ff0055] border-[#ff0055]/30 hover:bg-[#ff0055] hover:text-black hover:shadow-[0_0_10px_#ff0055]"
-                                : isBrutal
-                                  ? "bg-white text-black border-2 border-black hover:bg-red-500 hover:text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                                  : theme === 'dark'
-                                    ? "bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500 hover:text-white shadow-[0_0_8px_rgba(239,68,68,0.35)]"
-                                    : currentTheme.isDark
-                                      ? "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/25 hover:text-red-300 hover:border-red-500/40"
-                                      : "bg-white text-stone-700 border-stone-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm"
-                          )}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                                    ? "text-black/75 hover:text-black hover:bg-black/10"
+                                    : isBrutal
+                                      ? "text-white/90 hover:text-white hover:bg-black/20"
+                                      : "text-white/80 hover:text-white hover:bg-white/15"
+                                : isCyber
+                                  ? "text-[#00f2ff]/70 hover:text-[#00f2ff] hover:bg-[#00f2ff]/10"
+                                  : currentTheme.isDark
+                                    ? "text-gray-400 hover:text-white hover:bg-white/10"
+                                    : "text-stone-600 hover:text-stone-900 hover:bg-black/5"
+                            )}
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => toggleSessionFavorite(session.id, e)}
+                            title={session.isFavorite ? t.removeFavorite : t.addFavorite}
+                            aria-label={session.isFavorite ? t.removeFavorite : t.addFavorite}
+                            className={cn(
+                              "p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg transition-all duration-200 shrink-0",
+                              themeHover.icon,
+                              session.isFavorite
+                                ? (isActive && !isCyber ? "text-amber-300 hover:bg-black/15" : "text-amber-400 hover:bg-amber-400/10")
+                                : (isActive ? "opacity-75 hover:opacity-100 hover:bg-black/15" : "opacity-65 group-hover:opacity-100 hover:bg-black/10")
+                            )}
+                          >
+                            <Star className={cn("w-4 h-4", session.isFavorite && "fill-current")} />
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={(e) => deleteSession(session.id, e)}
+                            title={t.deleteChatTooltip}
+                            aria-label={t.deleteChatTooltip}
+                            className={cn(
+                              "p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg transition-all duration-200 shrink-0 border",
+                              themeHover.icon,
+                              "opacity-80 group-hover:opacity-100 focus:opacity-100",
+                              isActive
+                                ? isCyber
+                                  ? "bg-[#ff0055]/20 text-[#ff0055] border-[#ff0055]/40 hover:bg-[#ff0055] hover:text-black shadow-[0_0_10px_rgba(255,0,85,0.4)]"
+                                  : isBrutal
+                                    ? "bg-black text-white border-black hover:bg-red-600 hover:border-black"
+                                    : theme === 'dark'
+                                      ? "bg-black/10 text-red-600 border border-black/30 hover:bg-red-600 hover:text-white"
+                                      : currentTheme.isDark
+                                        ? "bg-white/10 text-white hover:bg-red-500/30 hover:text-red-300 border-white/20"
+                                        : "bg-black/10 text-white hover:bg-red-600 hover:text-white border-black/10"
+                                : isCyber
+                                  ? "bg-black/60 text-[#ff0055] border-[#ff0055]/30 hover:bg-[#ff0055] hover:text-black hover:shadow-[0_0_10px_#ff0055]"
+                                  : isBrutal
+                                    ? "bg-white text-black border-2 border-black hover:bg-red-500 hover:text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                    : theme === 'dark'
+                                      ? "bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500 hover:text-white shadow-[0_0_8px_rgba(239,68,68,0.35)]"
+                                      : currentTheme.isDark
+                                        ? "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/25 hover:text-red-300 hover:border-red-500/40"
+                                        : "bg-white text-stone-700 border-stone-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 shadow-sm"
+                            )}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     )
                   })
@@ -2844,7 +3071,8 @@ const Translator = () => {
                       setIsUpdateDialogOpen(true)
                     }}
                     className={cn(
-                      "w-full flex items-center justify-center gap-2 py-2.5 min-h-[44px] rounded-xl text-xs font-bold border transition-all",
+                      "w-full flex items-center justify-center gap-2 py-2.5 min-h-[44px] rounded-xl text-xs font-bold border transition-all duration-200",
+                      themeHover.surface,
                       isCyber
                         ? "bg-[#00f2ff]/15 border-[#00f2ff] text-[#00f2ff] hover:bg-[#00f2ff] hover:text-black"
                         : "bg-emerald-600/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-600 hover:text-white"
@@ -2866,7 +3094,8 @@ const Translator = () => {
                       }
                     }}
                     className={cn(
-                      "w-full flex items-center justify-center gap-2 py-2.5 min-h-[44px] rounded-xl text-xs font-bold border transition-all",
+                      "w-full flex items-center justify-center gap-2 py-2.5 min-h-[44px] rounded-xl text-xs font-bold border transition-all duration-200",
+                      themeHover.surface,
                       isCyber
                         ? "border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10"
                         : currentTheme.isDark
@@ -2883,12 +3112,15 @@ const Translator = () => {
                   type="button"
                   onClick={() => setIsConfirmOpen(true)}
                   className={cn(
-                    "w-full flex items-center justify-center gap-2 py-2.5 min-h-[44px] rounded-xl text-xs font-bold uppercase tracking-wider border transition-all",
+                    "w-full flex items-center justify-center gap-2 py-2.5 min-h-[44px] rounded-xl text-xs font-bold uppercase tracking-wider border transition-all duration-200",
+                    themeHover.surface,
                     isCyber
                       ? "border-[#ff0055]/40 text-[#ff0055] hover:bg-[#ff0055]/10"
-                      : currentTheme.isDark
-                        ? "border-red-500/25 text-red-400 hover:bg-red-500/10"
-                        : "border-red-200 text-red-600 hover:bg-red-50"
+                      : isBrutal
+                        ? "border-2 border-black bg-white text-red-600 hover:bg-red-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        : currentTheme.isDark
+                          ? "border-red-500/25 text-red-400 hover:bg-red-500/10"
+                          : "border-red-200 text-red-600 hover:bg-red-50"
                   )}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -2957,14 +3189,15 @@ const Translator = () => {
                   <button
                     onClick={() => setIsConfirmOpen(false)}
                     className={cn(
-                      "flex-1 py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs transition-all",
+                      "flex-1 py-2.5 min-h-[44px] rounded-xl font-bold uppercase tracking-wider text-xs transition-all duration-200",
+                      themeHover.surface,
                       isCyber 
                         ? "border border-[#00f2ff] text-[#00f2ff] hover:bg-[#00f2ff]/10" 
                         : isGlass
-                          ? "bg-white/5 text-white/60 hover:bg-white/10 border border-white/10"
+                          ? "bg-white/5 text-white/80 hover:bg-white/15 border border-white/15"
                           : isBrutal
-                            ? "border-4 border-black text-black hover:bg-black/5"
-                            : "bg-white/5 text-gray-400 hover:bg-white/10"
+                            ? "border-4 border-black text-black hover:bg-black/5 rounded-none"
+                            : "bg-white/5 text-gray-300 hover:bg-white/10 border border-white/10"
                     )}
                   >
                     {t.cancel}
@@ -2975,13 +3208,14 @@ const Translator = () => {
                       setIsConfirmOpen(false);
                     }}
                     className={cn(
-                      "flex-1 py-2.5 rounded-xl font-bold uppercase tracking-wider text-xs transition-all",
+                      "flex-1 py-2.5 min-h-[44px] rounded-xl font-bold uppercase tracking-wider text-xs transition-all duration-200",
+                      themeHover.primary,
                       isCyber 
                         ? "bg-[#ff4b4b] text-black shadow-[0_0_15px_#ff4b4b] hover:shadow-[0_0_25px_#ff4b4b]" 
                         : isGlass
                           ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg"
                           : isBrutal
-                            ? "bg-black text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1 active:translate-y-1"
+                            ? "bg-black text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-none"
                             : "bg-red-600 text-white hover:bg-red-700"
                     )}
                   >
@@ -3035,8 +3269,13 @@ const Translator = () => {
                   <button 
                     onClick={() => setIsSettingsOpen(false)}
                     className={cn(
-                      "p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-colors",
-                      isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : cn(currentTheme.textMuted, "hover:bg-black/5")
+                      "p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-all duration-200",
+                      themeHover.icon,
+                      isCyber
+                        ? "text-[#00f2ff] hover:bg-[#00f2ff]/10"
+                        : currentTheme.isDark
+                          ? cn(currentTheme.textMuted, "hover:bg-white/10 hover:text-white")
+                          : cn(currentTheme.textMuted, "hover:bg-black/5 hover:text-black")
                     )}
                     aria-label={tSettings.close}
                   >
@@ -3047,7 +3286,7 @@ const Translator = () => {
                 {/* Settings Tabs - Fixed */}
                 <div className={cn(
                   "flex items-center gap-1 p-1 rounded-xl border transition-colors duration-500",
-                  isCyber ? "bg-black border-[#00f2ff]/30" : isGlass ? "bg-white/5 border-white/10" : isBrutal ? "bg-white border-4 border-black" : cn(currentTheme.bg, currentTheme.border)
+                  isCyber ? "bg-black border-[#00f2ff]/30" : isGlass ? "bg-white/5 border-white/10" : isBrutal ? "bg-white border-4 border-black rounded-none" : cn(currentTheme.bg, currentTheme.border)
                 )}>
                   {[
                     { id: 'appearance', label: tSettings.tabs.appearance, icon: Eye },
@@ -3066,10 +3305,11 @@ const Translator = () => {
                       title={tab.label}
                       aria-label={tab.label}
                       className={cn(
-                        "flex-1 min-h-[40px] flex items-center justify-center gap-1 py-2 px-1 rounded-lg text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all duration-300 relative whitespace-nowrap shrink-0",
+                        "flex-1 min-h-[40px] flex items-center justify-center gap-1 py-2 px-1 rounded-lg text-[10px] sm:text-[11px] font-bold uppercase tracking-wider transition-all duration-200 relative whitespace-nowrap shrink-0",
+                        themeHover.icon,
                         activeSettingsTab === tab.id
-                          ? (isCyber ? "bg-[#00f2ff] text-black shadow-[0_0_15px_#00f2ff]" : isGlass ? "bg-white/20 text-white shadow-lg" : isBrutal ? "bg-black text-white" : cn(currentTheme.accent, currentTheme.accentText))
-                          : (isCyber ? "text-[#00f2ff]/50 hover:text-[#00f2ff] hover:bg-[#00f2ff]/10" : isGlass ? "text-white/40 hover:text-white hover:bg-white/5" : isBrutal ? "text-black/40 hover:text-black hover:bg-black/5" : cn(currentTheme.textMuted, "hover:bg-black/5"))
+                          ? (isCyber ? "bg-[#00f2ff] text-black shadow-[0_0_15px_#00f2ff]" : isGlass ? "bg-white/20 text-white shadow-lg" : isBrutal ? "bg-black text-white rounded-none" : cn(currentTheme.accent, currentTheme.accentText))
+                          : (isCyber ? "text-[#00f2ff]/60 hover:text-[#00f2ff] hover:bg-[#00f2ff]/10" : isGlass ? "text-white/55 hover:text-white hover:bg-white/10" : isBrutal ? "text-black/60 hover:text-black hover:bg-black/5 rounded-none" : currentTheme.isDark ? cn(currentTheme.textMuted, "hover:text-white hover:bg-white/10") : cn(currentTheme.textMuted, "hover:text-gray-900 hover:bg-black/5"))
                       )}
                     >
                       {tab.id === 'api' ? (
@@ -3120,18 +3360,21 @@ const Translator = () => {
                           type="button"
                           onClick={() => updateStaged('appLang', 'my')}
                           className={cn(
-                            "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all",
+                            "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all duration-200",
+                            themeHover.surface,
                             stagedSettings.appLang === 'my'
                               ? isCyber 
                                 ? "bg-[#00f2ff] text-black shadow-[0_0_12px_#00f2ff]" 
-                                : currentTheme.isDark 
-                                  ? "bg-emerald-600 text-white shadow-md" 
-                                  : cn(currentTheme.accent, currentTheme.accentText, "shadow-sm")
+                                : theme === 'dark'
+                                  ? "bg-white text-black shadow-md"
+                                  : currentTheme.isDark 
+                                    ? "bg-emerald-600 text-white shadow-md" 
+                                    : cn(currentTheme.accent, currentTheme.accentText, "shadow-sm")
                               : isCyber 
                                 ? "text-[#00f2ff]/60 hover:text-[#00f2ff]" 
                                 : currentTheme.isDark 
-                                  ? "text-gray-400 hover:text-white" 
-                                  : "text-stone-600 hover:text-stone-900"
+                                  ? "text-gray-400 hover:text-white hover:bg-white/5" 
+                                  : "text-stone-600 hover:text-stone-900 hover:bg-black/5"
                           )}
                         >
                           <span className="text-sm">🇲🇲</span>
@@ -3142,18 +3385,21 @@ const Translator = () => {
                           type="button"
                           onClick={() => updateStaged('appLang', 'en')}
                           className={cn(
-                            "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all",
+                            "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all duration-200",
+                            themeHover.surface,
                             stagedSettings.appLang === 'en'
                               ? isCyber 
                                 ? "bg-[#00f2ff] text-black shadow-[0_0_12px_#00f2ff]" 
-                                : currentTheme.isDark 
-                                  ? "bg-emerald-600 text-white shadow-md" 
-                                  : cn(currentTheme.accent, currentTheme.accentText, "shadow-sm")
+                                : theme === 'dark'
+                                  ? "bg-white text-black shadow-md"
+                                  : currentTheme.isDark 
+                                    ? "bg-emerald-600 text-white shadow-md" 
+                                    : cn(currentTheme.accent, currentTheme.accentText, "shadow-sm")
                               : isCyber 
                                 ? "text-[#00f2ff]/60 hover:text-[#00f2ff]" 
                                 : currentTheme.isDark 
-                                  ? "text-gray-400 hover:text-white" 
-                                  : "text-stone-600 hover:text-stone-900"
+                                  ? "text-gray-400 hover:text-white hover:bg-white/5" 
+                                  : "text-stone-600 hover:text-stone-900 hover:bg-black/5"
                           )}
                         >
                           <span className="text-sm">🇬🇧</span>
@@ -3174,9 +3420,11 @@ const Translator = () => {
                         {tSettings.themeOption}
                       </label>
                       <button
-                        onClick={() => setActiveDropdown(activeDropdown === 'theme' ? null : 'theme')}
+                        type="button"
+                        onClick={(e) => toggleSettingsDropdown('theme', e)}
                         className={cn(
-                          "w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all",
+                          "w-full min-h-[44px] flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all duration-200",
+                          themeHover.surface,
                           isCyber ? "bg-black border-[#00f2ff] text-[#00f2ff] shadow-[inset_0_0_10px_rgba(0,242,255,0.1)]" : cn(currentTheme.bg, currentTheme.border, currentTheme.text)
                         )}
                       >
@@ -3186,45 +3434,6 @@ const Translator = () => {
                         </div>
                         <ChevronDown className={cn("w-4 h-4 transition-transform", activeDropdown === 'theme' && "rotate-180")} />
                       </button>
-                      
-                      <AnimatePresence>
-                        {activeDropdown === 'theme' && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className={cn(
-                              "absolute top-full left-0 right-0 mt-2 z-30 rounded-xl border shadow-2xl overflow-hidden",
-                              isCyber 
-                                ? "bg-black border-[#00f2ff]" 
-                                : currentTheme.isDark 
-                                  ? "bg-[#282828] border-white/10" 
-                                  : "bg-white border-gray-200 text-gray-800 shadow-xl"
-                            )}
-                          >
-                            <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-                              {(Object.keys(THEME_CONFIG) as Theme[]).map((thm) => (
-                                <button
-                                  key={thm}
-                                  onClick={() => {
-                                    updateStaged('theme', thm)
-                                    setActiveDropdown(null)
-                                  }}
-                                  className={cn(
-                                    "w-full text-left px-4 py-3 text-sm transition-colors flex items-center justify-between",
-                                    stagedSettings.theme === thm 
-                                      ? (isCyber ? "bg-[#00f2ff] text-black" : currentTheme.isDark ? "bg-emerald-600 text-white font-medium" : cn(currentTheme.accent, currentTheme.accentText, "font-semibold"))
-                                      : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-100")
-                                  )}
-                                >
-                                  <span>{THEME_CONFIG[thm].name}</span>
-                                  {stagedSettings.theme === thm && <Check className="w-4 h-4" />}
-                                </button>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                     </div>
 
                     {/* English Font Style Section */}
@@ -3239,9 +3448,11 @@ const Translator = () => {
                         <span className="text-[10px] opacity-60 font-medium">{tSettings.englishFontDesc}</span>
                       </div>
                       <button
-                        onClick={() => setActiveDropdown(activeDropdown === 'font' ? null : 'font')}
+                        type="button"
+                        onClick={(e) => toggleSettingsDropdown('font', e)}
                         className={cn(
-                          "w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all",
+                          "w-full min-h-[44px] flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all duration-200",
+                          themeHover.surface,
                           isCyber ? "bg-black border-[#00f2ff] text-[#00f2ff] shadow-[inset_0_0_10px_rgba(0,242,255,0.1)]" : cn(currentTheme.bg, currentTheme.border, currentTheme.text)
                         )}
                       >
@@ -3252,45 +3463,6 @@ const Translator = () => {
                         </div>
                         <ChevronDown className={cn("w-4 h-4 transition-transform", activeDropdown === 'font' && "rotate-180")} />
                       </button>
-                      
-                      <AnimatePresence>
-                        {activeDropdown === 'font' && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className={cn(
-                              "absolute top-full left-0 right-0 mt-2 z-30 rounded-xl border shadow-2xl overflow-hidden",
-                              isCyber 
-                                ? "bg-black border-[#00f2ff]" 
-                                : currentTheme.isDark 
-                                  ? "bg-[#282828] border-white/10" 
-                                  : "bg-white border-gray-200 text-gray-800 shadow-xl"
-                            )}
-                          >
-                            <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-                              {ENGLISH_FONT_OPTIONS.map((f) => (
-                                <button
-                                  key={f.id}
-                                  onClick={() => {
-                                    updateStaged('fontStyle', f.id as FontStyle)
-                                    setActiveDropdown(null)
-                                  }}
-                                  className={cn(
-                                    "w-full text-left px-4 py-3 text-sm transition-colors flex items-center justify-between",
-                                    stagedSettings.fontStyle === f.id 
-                                      ? (isCyber ? "bg-[#00f2ff] text-black" : currentTheme.isDark ? "bg-emerald-600 text-white font-medium" : cn(currentTheme.accent, currentTheme.accentText, "font-semibold"))
-                                      : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-100")
-                                  )}
-                                >
-                                  <span className={f.class}>{f.name}</span>
-                                  {stagedSettings.fontStyle === f.id && <Check className="w-4 h-4" />}
-                                </button>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                     </div>
 
                     {/* Myanmar Font Style Section */}
@@ -3305,9 +3477,11 @@ const Translator = () => {
                         <span className="text-[10px] opacity-60 font-medium">{tSettings.myanmarFontDesc}</span>
                       </div>
                       <button
-                        onClick={() => setActiveDropdown(activeDropdown === 'mm-font' ? null : 'mm-font')}
+                        type="button"
+                        onClick={(e) => toggleSettingsDropdown('mm-font', e)}
                         className={cn(
-                          "w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all text-left",
+                          "w-full min-h-[44px] flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all duration-200 text-left",
+                          themeHover.surface,
                           isCyber ? "bg-black border-[#00f2ff] text-[#00f2ff] shadow-[inset_0_0_10px_rgba(0,242,255,0.1)]" : cn(currentTheme.bg, currentTheme.border, currentTheme.text)
                         )}
                       >
@@ -3331,54 +3505,6 @@ const Translator = () => {
                         </div>
                         <ChevronDown className={cn("w-4 h-4 transition-transform shrink-0", activeDropdown === 'mm-font' && "rotate-180")} />
                       </button>
-                      
-                      <AnimatePresence>
-                        {activeDropdown === 'mm-font' && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className={cn(
-                              "absolute top-full left-0 right-0 mt-2 z-30 rounded-xl border shadow-2xl overflow-hidden",
-                              isCyber 
-                                ? "bg-black border-[#00f2ff]" 
-                                : currentTheme.isDark 
-                                  ? "bg-[#282828] border-white/10" 
-                                  : "bg-white border-gray-200 text-gray-800 shadow-xl"
-                            )}
-                          >
-                            <div className="max-h-72 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-                              {MYANMAR_FONT_OPTIONS.map((f) => (
-                                <button
-                                  key={f.id}
-                                  onClick={() => {
-                                    updateStaged('myanmarFont', f.id)
-                                    setActiveDropdown(null)
-                                  }}
-                                  className={cn(
-                                    "w-full text-left px-4 py-3 text-sm transition-colors flex items-center justify-between border-b last:border-b-0",
-                                    currentTheme.isDark ? "border-white/5" : "border-black/5",
-                                    stagedSettings.myanmarFont === f.id 
-                                      ? (isCyber ? "bg-[#00f2ff] text-black" : currentTheme.isDark ? "bg-emerald-600 text-white font-medium" : cn(currentTheme.accent, currentTheme.accentText, "font-semibold"))
-                                      : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-100")
-                                  )}
-                                >
-                                  <div className="flex flex-col gap-0.5 min-w-0 pr-2">
-                                    <span className="text-xs font-bold uppercase tracking-wider opacity-85">{f.name}</span>
-                                    <div className={cn("text-base sm:text-lg leading-snug py-0.5", f.class)}>
-                                      မင်္ဂလာပါ ကမ္ဘာလောက
-                                    </div>
-                                    <span className={cn("text-[11px]", stagedSettings.myanmarFont === f.id ? "opacity-90" : "opacity-65")}>
-                                      {stagedSettings.appLang === 'en' ? f.subtextEn : f.subtext}
-                                    </span>
-                                  </div>
-                                  {stagedSettings.myanmarFont === f.id && <Check className="w-4 h-4 shrink-0" />}
-                                </button>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                     </div>
 
                     </div>
@@ -3391,14 +3517,19 @@ const Translator = () => {
                       <button
                         onClick={applyAppearanceSettings}
                         className={cn(
-                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-200 border text-xs sm:text-sm",
+                          themeHover.primary,
                           isCyber 
                             ? "bg-[#00f2ff] text-black shadow-[0_0_20px_rgba(0,242,255,0.5)] border-[#00f2ff] hover:bg-black hover:text-[#00f2ff]" 
                             : isBrutal
-                              ? "bg-black text-white hover:bg-gray-800 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5"
-                              : currentTheme.isDark
-                                ? "bg-emerald-600 text-white hover:bg-emerald-700 border-transparent shadow-lg"
-                                : "bg-[#5A5A40] text-white hover:bg-[#474732] border-transparent shadow-md"
+                              ? "bg-black text-white hover:bg-gray-800 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-none"
+                              : isGlass
+                                ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 border-white/20 shadow-lg"
+                                : theme === 'dark'
+                                  ? "bg-white text-black hover:bg-gray-200 border-transparent shadow-lg"
+                                  : currentTheme.isDark
+                                    ? "bg-emerald-600 text-white hover:bg-emerald-700 border-transparent shadow-lg"
+                                    : "bg-[#5A5A40] text-white hover:bg-[#474732] border-transparent shadow-md"
                         )}
                       >
                         {tSettings.saveAppearance}
@@ -3413,9 +3544,9 @@ const Translator = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="flex-1 min-h-0 flex flex-col overflow-hidden min-w-0 w-full"
                   >
-                    {/* Pinned Top Anchor: Output Animation Dropdown (Floats cleanly above scrollable sound options) */}
+                    {/* Pinned Top Anchor: Output Animation Dropdown */}
                     <div className={cn(
-                      "shrink-0 px-4 sm:px-6 pt-3 pb-3 border-b space-y-2 relative z-30",
+                      "shrink-0 px-4 sm:px-6 pt-3 pb-3 border-b space-y-2 relative z-20",
                       isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
                     )}>
                       <label className={cn(
@@ -3425,9 +3556,11 @@ const Translator = () => {
                         {tSettings.outputAnimation}
                       </label>
                       <button
-                        onClick={() => setActiveDropdown(activeDropdown === 'animation' ? null : 'animation')}
+                        type="button"
+                        onClick={(e) => toggleSettingsDropdown('animation', e)}
                         className={cn(
-                          "w-full min-h-[44px] flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all",
+                          "w-full min-h-[44px] flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all duration-200",
+                          themeHover.surface,
                           isCyber ? "bg-black border-[#00f2ff] text-[#00f2ff] shadow-[inset_0_0_10px_rgba(0,242,255,0.1)]" : cn(currentTheme.bg, currentTheme.border, currentTheme.text)
                         )}
                       >
@@ -3437,50 +3570,7 @@ const Translator = () => {
                         </div>
                         <ChevronDown className={cn("w-4 h-4 transition-transform", activeDropdown === 'animation' && "rotate-180")} />
                       </button>
-                      
-                      <AnimatePresence>
-                        {activeDropdown === 'animation' && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              className={cn(
-                                "absolute top-full left-4 right-4 sm:left-6 sm:right-6 mt-1.5 z-40 rounded-xl border shadow-2xl overflow-hidden",
-                                isCyber 
-                                  ? "bg-black border-[#00f2ff]" 
-                                  : currentTheme.isDark 
-                                    ? "bg-[#282828] border-white/10" 
-                                    : "bg-white border-gray-200 text-gray-800 shadow-xl"
-                              )}
-                            >
-                              <div className="max-h-56 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-                                {animations.map((anim) => (
-                                  <button
-                                    key={anim}
-                                    onClick={() => {
-                                      updateStaged('animation', anim)
-                                      setActiveDropdown(null)
-                                      // Play sound once for non-typing animations
-                                      if (anim !== 'typing' && stagedSettings.soundType !== 'Off') {
-                                        playTypingSound(stagedSettings.soundType, true)
-                                      }
-                                    }}
-                                    className={cn(
-                                      "w-full text-left px-4 py-3 text-sm transition-colors capitalize flex items-center gap-2",
-                                      stagedSettings.animation === anim 
-                                        ? (isCyber ? "bg-[#00f2ff] text-black" : currentTheme.isDark ? "bg-emerald-600 text-white font-medium" : cn(currentTheme.accent, currentTheme.accentText, "font-semibold"))
-                                        : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-100")
-                                    )}
-                                  >
-                                    {anim === 'typing' && <Keyboard className="w-4 h-4" />}
-                                    {anim}
-                                  </button>
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
+                    </div>
 
                       {/* Scrollable Middle: Animation Sound Options */}
                       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain px-4 sm:px-6 py-4 space-y-4 relative z-10 scrollbar-thin scrollbar-thumb-white/10">
@@ -3521,15 +3611,18 @@ const Translator = () => {
                                 }
                               }}
                               className={cn(
-                                "w-full min-h-[48px] px-3.5 py-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-2.5",
+                                "w-full min-h-[48px] px-3.5 py-2.5 rounded-xl border text-left transition-all duration-200 flex items-center justify-between gap-2.5",
+                                themeHover.surface,
                                 isSelected
                                   ? (isCyber
                                       ? "bg-[#00f2ff] text-black border-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.4)]"
                                       : isBrutal
-                                        ? "bg-black text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
-                                        : currentTheme.isDark
-                                          ? "bg-emerald-600/25 border-emerald-500 text-white"
-                                          : "bg-[#5A5A40] text-white border-[#5A5A40] shadow-sm")
+                                        ? "bg-black text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] rounded-none"
+                                        : theme === 'dark'
+                                          ? "bg-white text-black border-white shadow-md"
+                                          : currentTheme.isDark
+                                            ? "bg-emerald-600/25 border-emerald-500 text-white"
+                                            : "bg-[#5A5A40] text-white border-[#5A5A40] shadow-sm")
                                   : (isCyber
                                       ? "bg-black border-[#00f2ff]/30 text-[#00f2ff] hover:border-[#00f2ff] hover:bg-[#00f2ff]/10"
                                       : currentTheme.isDark
@@ -3541,7 +3634,7 @@ const Translator = () => {
                                 <span className={cn(
                                   "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
                                   isSelected
-                                    ? (isCyber ? "bg-black/15 text-black" : "bg-white/15 text-current")
+                                    ? (isCyber || theme === 'dark' ? "bg-black/15 text-black" : "bg-white/15 text-current")
                                     : (isCyber ? "bg-[#00f2ff]/10 text-[#00f2ff]" : currentTheme.isDark ? "bg-white/5 text-gray-400" : "bg-black/5 text-gray-500")
                                 )}>
                                   {isSilent ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -3589,14 +3682,19 @@ const Translator = () => {
                       <button
                         onClick={applyAudioSettings}
                         className={cn(
-                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-200 border text-xs sm:text-sm",
+                          themeHover.primary,
                           isCyber 
                             ? "bg-[#00f2ff] text-black shadow-[0_0_20px_rgba(0,242,255,0.5)] border-[#00f2ff] hover:bg-black hover:text-[#00f2ff]" 
                             : isBrutal
-                              ? "bg-black text-white hover:bg-gray-800 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5"
-                              : currentTheme.isDark
-                                ? "bg-emerald-600 text-white hover:bg-emerald-700 border-transparent shadow-lg"
-                                : "bg-[#5A5A40] text-white hover:bg-[#474732] border-transparent shadow-md"
+                              ? "bg-black text-white hover:bg-gray-800 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-none"
+                              : isGlass
+                                ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 border-white/20 shadow-lg"
+                                : theme === 'dark'
+                                  ? "bg-white text-black hover:bg-gray-200 border-transparent shadow-lg"
+                                  : currentTheme.isDark
+                                    ? "bg-emerald-600 text-white hover:bg-emerald-700 border-transparent shadow-lg"
+                                    : "bg-[#5A5A40] text-white hover:bg-[#474732] border-transparent shadow-md"
                         )}
                       >
                         {tSettings.saveAudio}
@@ -3662,18 +3760,21 @@ const Translator = () => {
                               setActiveDropdown(null)
                             }}
                             className={cn(
-                              "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all",
+                              "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all duration-200",
+                              themeHover.surface,
                               stagedSettings.aiProvider === 'gemini'
                                 ? isCyber 
                                   ? "bg-[#00f2ff] text-black shadow-[0_0_12px_#00f2ff]" 
-                                  : currentTheme.isDark 
-                                    ? "bg-emerald-600 text-white shadow-md" 
-                                    : cn(currentTheme.accent, currentTheme.accentText, "shadow-sm")
+                                  : theme === 'dark'
+                                    ? "bg-white text-black shadow-md"
+                                    : currentTheme.isDark 
+                                      ? "bg-emerald-600 text-white shadow-md" 
+                                      : cn(currentTheme.accent, currentTheme.accentText, "shadow-sm")
                                 : isCyber 
                                   ? "text-[#00f2ff]/60 hover:text-[#00f2ff]" 
                                   : currentTheme.isDark 
-                                    ? "text-gray-400 hover:text-white" 
-                                    : "text-stone-600 hover:text-stone-900"
+                                    ? "text-gray-400 hover:text-white hover:bg-white/5" 
+                                    : "text-stone-600 hover:text-stone-900 hover:bg-black/5"
                             )}
                           >
                             <Sparkles className="w-3.5 h-3.5" />
@@ -3688,7 +3789,8 @@ const Translator = () => {
                               setActiveDropdown(null)
                             }}
                             className={cn(
-                              "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all",
+                              "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-xs font-bold transition-all duration-200",
+                              themeHover.surface,
                               stagedSettings.aiProvider === 'groq'
                                 ? isCyber 
                                   ? "bg-[#00f2ff] text-black shadow-[0_0_12px_#00f2ff]" 
@@ -3698,8 +3800,8 @@ const Translator = () => {
                                 : isCyber 
                                   ? "text-[#00f2ff]/60 hover:text-[#00f2ff]" 
                                   : currentTheme.isDark 
-                                    ? "text-gray-400 hover:text-white" 
-                                    : "text-stone-600 hover:text-stone-900"
+                                    ? "text-gray-400 hover:text-white hover:bg-white/5" 
+                                    : "text-stone-600 hover:text-stone-900 hover:bg-black/5"
                             )}
                           >
                             <Zap className="w-3.5 h-3.5" />
@@ -3728,9 +3830,10 @@ const Translator = () => {
 
                         <button
                           type="button"
-                          onClick={() => setActiveDropdown(activeDropdown === 'model' ? null : 'model')}
+                          onClick={(e) => toggleSettingsDropdown('model', e)}
                           className={cn(
-                            "w-full min-w-0 overflow-hidden flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all text-left",
+                            "w-full min-w-0 min-h-[44px] overflow-hidden flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all duration-200 text-left",
+                            themeHover.surface,
                             isCyber ? "bg-black border-[#00f2ff] text-[#00f2ff]" : cn(currentTheme.bg, currentTheme.border, currentTheme.text)
                           )}
                         >
@@ -3750,84 +3853,6 @@ const Translator = () => {
                           </div>
                           <ChevronDown className={cn("w-4 h-4 transition-transform shrink-0", activeDropdown === 'model' && "rotate-180")} />
                         </button>
-
-                        <AnimatePresence>
-                          {activeDropdown === 'model' && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              className={cn(
-                                "absolute top-full left-0 right-0 mt-2 z-30 rounded-xl border shadow-2xl overflow-hidden",
-                                isCyber 
-                                  ? "bg-black border-[#00f2ff]" 
-                                  : currentTheme.isDark 
-                                    ? "bg-[#282828] border-white/10" 
-                                    : "bg-white border-gray-200 text-gray-800 shadow-xl"
-                              )}
-                            >
-                              <div className="max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-                                {(stagedSettings.aiProvider === 'gemini' ? GEMINI_MODELS : GROQ_MODELS).map((m) => {
-                                  const isSelected = (stagedSettings.aiProvider === 'gemini' ? stagedSettings.geminiModel : stagedSettings.groqModel) === m.id
-                                  return (
-                                    <button
-                                      key={m.id}
-                                      type="button"
-                                      onClick={() => {
-                                        if (stagedSettings.aiProvider === 'gemini') {
-                                          updateStaged('geminiModel', m.id)
-                                        } else {
-                                          updateStaged('groqModel', m.id)
-                                        }
-                                        setActiveDropdown(null)
-                                      }}
-                                      className={cn(
-                                        "w-full text-left px-4 py-3 text-sm transition-colors border-b last:border-b-0",
-                                        currentTheme.isDark ? "border-white/5" : "border-stone-100",
-                                        isSelected
-                                          ? isCyber 
-                                            ? "bg-[#00f2ff] text-black" 
-                                            : currentTheme.isDark 
-                                              ? "bg-emerald-600/30 text-white font-medium" 
-                                              : "bg-stone-100 text-stone-900 font-semibold"
-                                          : isCyber 
-                                            ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" 
-                                            : currentTheme.isDark 
-                                              ? "text-gray-300 hover:bg-white/5" 
-                                              : "text-gray-700 hover:bg-gray-50"
-                                      )}
-                                    >
-                                      <div className="flex items-center justify-between gap-2">
-                                        <span className="font-bold flex items-center gap-2 flex-wrap">
-                                          <span>{m.name}</span>
-                                          <span className={cn(
-                                            "text-[10px] px-2 py-0.5 rounded font-mono uppercase font-bold border",
-                                            isSelected && isCyber
-                                              ? "bg-emerald-700 text-white border-emerald-900"
-                                              : currentTheme.isDark
-                                                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
-                                                : "bg-emerald-100 text-emerald-800 border-emerald-300"
-                                          )}>
-                                            {m.badge}
-                                          </span>
-                                        </span>
-                                        {isSelected && <Check className="w-4 h-4 text-emerald-500 shrink-0" />}
-                                      </div>
-                                      <p className={cn(
-                                        "text-xs mt-1 leading-snug",
-                                        isSelected 
-                                          ? isCyber ? "text-black/80" : currentTheme.isDark ? "text-gray-200" : "text-stone-700"
-                                          : isCyber ? "text-[#00f2ff]/70" : currentTheme.isDark ? "text-gray-400" : "text-stone-500"
-                                      )}>
-                                        {stagedSettings.appLang === 'en' ? m.descriptionEn : m.description}
-                                      </p>
-                                    </button>
-                                  )
-                                })}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
                       </div>
 
                       {/* 3. API Key Input (Write-Only Web Crypto E2E Vault: shows only last 4 chars once saved) */}
@@ -3889,7 +3914,8 @@ const Translator = () => {
                                     }
                                   }}
                                   className={cn(
-                                    "px-3 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all shrink-0",
+                                    "px-3 py-2.5 min-h-[44px] rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all duration-200 shrink-0",
+                                    themeHover.surface,
                                     isCyber
                                       ? "bg-black border-[#00f2ff] text-[#00f2ff] hover:bg-[#00f2ff]/10"
                                       : currentTheme.isDark
@@ -3915,7 +3941,8 @@ const Translator = () => {
                                     }
                                   }}
                                   className={cn(
-                                    "p-2.5 rounded-xl border transition-all shrink-0",
+                                    "p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border transition-all duration-200 shrink-0",
+                                    themeHover.icon,
                                     isCyber
                                       ? "bg-black border-red-500 text-red-500 hover:bg-red-500/10"
                                       : currentTheme.isDark
@@ -3983,7 +4010,8 @@ const Translator = () => {
                                         }
                                       }}
                                       className={cn(
-                                        "p-2.5 rounded-xl border transition-all",
+                                        "p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border transition-all duration-200",
+                                        themeHover.icon,
                                         isCyber 
                                           ? "bg-black border-[#00f2ff] text-[#00f2ff] hover:bg-[#00f2ff]/10" 
                                           : currentTheme.isDark
@@ -4011,7 +4039,8 @@ const Translator = () => {
                                           }
                                         }}
                                         className={cn(
-                                          "p-2.5 rounded-xl border transition-all",
+                                          "p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border transition-all duration-200",
+                                          themeHover.icon,
                                           isCyber 
                                             ? "bg-black border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10" 
                                             : currentTheme.isDark
@@ -4130,14 +4159,19 @@ const Translator = () => {
                       <button
                         onClick={applyApiSettings}
                         className={cn(
-                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-200 border text-xs sm:text-sm",
+                          themeHover.primary,
                           isCyber 
                             ? "bg-[#00f2ff] text-black shadow-[0_0_20px_rgba(0,242,255,0.5)] border-[#00f2ff] hover:bg-black hover:text-[#00f2ff]" 
                             : isBrutal
-                              ? "bg-black text-white hover:bg-gray-800 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-0.5 active:translate-y-0.5"
-                              : currentTheme.isDark
-                                ? "bg-emerald-600 text-white hover:bg-emerald-700 border-transparent shadow-lg"
-                                : "bg-[#5A5A40] text-white hover:bg-[#474732] border-transparent shadow-md"
+                              ? "bg-black text-white hover:bg-gray-800 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] rounded-none"
+                              : isGlass
+                                ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white hover:from-indigo-600 hover:to-purple-600 border-white/20 shadow-lg"
+                                : theme === 'dark'
+                                  ? "bg-white text-black hover:bg-gray-200 border-transparent shadow-lg"
+                                  : currentTheme.isDark
+                                    ? "bg-emerald-600 text-white hover:bg-emerald-700 border-transparent shadow-lg"
+                                    : "bg-[#5A5A40] text-white hover:bg-[#474732] border-transparent shadow-md"
                         )}
                       >
                         {tSettings.saveApi}
@@ -4186,7 +4220,11 @@ const Translator = () => {
                                 setPermissionFeedback(tSettings.permReadyMsg);
                               }
                             }}
-                            className="w-full min-h-[44px] flex items-center justify-between gap-3 text-left rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                            className={cn(
+                              "w-full min-h-[44px] flex items-center justify-between gap-3 text-left rounded-lg px-2 py-1.5 border border-transparent transition-all duration-200",
+                              themeHover.surface,
+                              currentTheme.isDark ? "hover:bg-white/5" : "hover:bg-black/5"
+                            )}
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <Mic className={cn("w-4 h-4 shrink-0", isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-indigo-400" : "text-[#5A5A40]")} />
@@ -4215,7 +4253,11 @@ const Translator = () => {
                                 setPermissionFeedback(tSettings.permReadyMsg);
                               }
                             }}
-                            className="w-full min-h-[44px] flex items-center justify-between gap-3 text-left rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                            className={cn(
+                              "w-full min-h-[44px] flex items-center justify-between gap-3 text-left rounded-lg px-2 py-1.5 border border-transparent transition-all duration-200",
+                              themeHover.surface,
+                              currentTheme.isDark ? "hover:bg-white/5" : "hover:bg-black/5"
+                            )}
                           >
                             <div className="flex items-center gap-2 min-w-0">
                               <ClipboardPaste className={cn("w-4 h-4 shrink-0", isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-indigo-400" : "text-[#5A5A40]")} />
@@ -4250,12 +4292,17 @@ const Translator = () => {
                             }
                           }}
                           className={cn(
-                            "w-full min-h-[44px] py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border",
+                            "w-full min-h-[44px] py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 border",
+                            themeHover.primary,
                             isCyber
                               ? "bg-black border-[#00f2ff] text-[#00f2ff] hover:bg-[#00f2ff] hover:text-black shadow-[0_0_15px_rgba(0,242,255,0.2)]"
-                              : currentTheme.isDark
-                                ? "bg-indigo-600 text-white hover:bg-indigo-700 border-transparent shadow-sm"
-                                : "bg-[#5A5A40] text-white hover:bg-[#474732] border-transparent shadow-sm"
+                              : isBrutal
+                                ? "bg-black text-white border-2 border-black hover:bg-gray-800 rounded-none shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                                : theme === 'dark'
+                                  ? "bg-white text-black hover:bg-gray-200 border-transparent shadow-sm"
+                                  : currentTheme.isDark
+                                    ? "bg-indigo-600 text-white hover:bg-indigo-700 border-transparent shadow-sm"
+                                    : "bg-[#5A5A40] text-white hover:bg-[#474732] border-transparent shadow-sm"
                           )}
                         >
                           {tSettings.triggerButtonText}
@@ -4266,7 +4313,8 @@ const Translator = () => {
                             type="button"
                             onClick={() => AppInstaller.openAppSettings()}
                             className={cn(
-                              "w-full min-h-[44px] py-2.5 rounded-xl text-xs font-bold border transition-colors",
+                              "w-full min-h-[44px] py-2.5 rounded-xl text-xs font-bold border transition-all duration-200",
+                              themeHover.surface,
                               isCyber
                                 ? "border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10"
                                 : currentTheme.isDark
@@ -4351,11 +4399,12 @@ const Translator = () => {
                       <button
                         onClick={() => setIsSettingsOpen(false)}
                         className={cn(
-                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-200 border text-xs sm:text-sm",
+                          themeHover.surface,
                           isCyber 
                             ? "border border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10" 
                             : isBrutal
-                              ? "border-2 border-black bg-white text-black font-bold hover:bg-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                              ? "border-2 border-black bg-white text-black font-bold hover:bg-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded-none"
                               : currentTheme.isDark
                                 ? "bg-white/10 text-white hover:bg-white/20 border-white/10"
                                 : "bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200"
@@ -4426,10 +4475,15 @@ const Translator = () => {
                             }
                           }}
                           className={cn(
-                            "w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shrink-0 disabled:opacity-60",
+                            "w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all duration-200 shrink-0 disabled:opacity-60 border border-transparent",
+                            themeHover.primary,
                             isCyber
                               ? "bg-[#00f2ff] text-black hover:bg-[#00d8e6]"
-                              : "bg-emerald-600 text-white hover:bg-emerald-700"
+                              : isBrutal
+                                ? "bg-black text-white border-2 border-black rounded-none shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                                : theme === 'dark'
+                                  ? "bg-white text-black hover:bg-gray-200"
+                                  : "bg-emerald-600 text-white hover:bg-emerald-700"
                           )}
                         >
                           <RefreshCw className={cn("w-3.5 h-3.5", isCheckingUpdate && "animate-spin")} />
@@ -4453,7 +4507,8 @@ const Translator = () => {
                             type="button"
                             onClick={() => setIsUpdateDialogOpen(true)}
                             className={cn(
-                              "w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shrink-0 transition-colors",
+                              "w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shrink-0 transition-all duration-200",
+                              themeHover.primary,
                               isCyber
                                 ? "bg-[#00f2ff] text-black"
                                 : "bg-emerald-600 text-white hover:bg-emerald-700"
@@ -4492,11 +4547,12 @@ const Translator = () => {
                       <button
                         onClick={() => setIsSettingsOpen(false)}
                         className={cn(
-                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-200 border text-xs sm:text-sm",
+                          themeHover.surface,
                           isCyber 
                             ? "border border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10" 
                             : isBrutal
-                              ? "border-2 border-black bg-white text-black font-bold hover:bg-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                              ? "border-2 border-black bg-white text-black font-bold hover:bg-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded-none"
                               : currentTheme.isDark
                                 ? "bg-white/10 text-white hover:bg-white/20 border-white/10"
                                 : "bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200"
@@ -4567,6 +4623,44 @@ const Translator = () => {
                         </div>
                       </div>
 
+                      {/* AI Translation & Accuracy Notice */}
+                      <div className={cn(
+                        "p-4 rounded-xl border space-y-2 min-w-0 w-full transition-colors",
+                        isCyber
+                          ? "bg-[#00f2ff]/5 border-[#00f2ff]/35 text-[#00f2ff]/90"
+                          : isBrutal
+                            ? "bg-yellow-50 border-2 border-black text-black rounded-none shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                            : currentTheme.isDark
+                              ? "bg-amber-500/10 border-amber-500/25 text-gray-200"
+                              : "bg-amber-50/90 border-amber-200 text-gray-800 shadow-sm"
+                      )}>
+                        <div className={cn(
+                          "flex items-center gap-2 text-xs font-bold uppercase tracking-wider",
+                          isCyber
+                            ? "text-[#00f2ff]"
+                            : isBrutal
+                              ? "text-black"
+                              : currentTheme.isDark
+                                ? "text-amber-300"
+                                : "text-amber-800"
+                        )}>
+                          <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                          <span>{tSettings.aiNoticeTitle}</span>
+                        </div>
+                        <p className={cn(
+                          "text-xs leading-relaxed",
+                          isCyber
+                            ? "text-[#00f2ff]/80"
+                            : isBrutal
+                              ? "text-black/85"
+                              : currentTheme.isDark
+                                ? "text-gray-300"
+                                : "text-gray-700"
+                        )}>
+                          {tSettings.aiNoticeBody}
+                        </p>
+                      </div>
+
                       {/* Developer Contact Links */}
                       <div className="space-y-2.5 min-w-0 w-full">
                         <div className={cn(
@@ -4582,7 +4676,8 @@ const Translator = () => {
                           target="_blank"
                           rel="noopener noreferrer"
                           className={cn(
-                            "w-full min-h-[60px] p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-colors min-w-0",
+                            "w-full min-h-[60px] p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-all duration-200 min-w-0",
+                            themeHover.surface,
                             isCyber
                               ? "bg-black border-[#00f2ff]/30 hover:bg-[#00f2ff]/10 text-[#00f2ff]"
                               : isBrutal
@@ -4654,7 +4749,8 @@ const Translator = () => {
                                 setTimeout(() => setCopiedDevContact(null), 1800)
                               }}
                               className={cn(
-                                "min-h-[44px] px-3 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 transition-colors",
+                                "min-h-[44px] px-3 py-2 rounded-lg text-xs font-semibold inline-flex items-center gap-1.5 border border-transparent transition-all duration-200",
+                                themeHover.surface,
                                 isCyber
                                   ? "hover:bg-[#00f2ff]/10 text-[#00f2ff]"
                                   : currentTheme.isDark
@@ -4680,10 +4776,13 @@ const Translator = () => {
                               rel="noopener noreferrer"
                               aria-label="Open Telegram @maweoo"
                               className={cn(
-                                "min-h-[44px] min-w-[44px] px-3 py-2 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1 transition-colors",
+                                "min-h-[44px] min-w-[44px] px-3 py-2 rounded-lg text-xs font-semibold inline-flex items-center justify-center gap-1 transition-all duration-200",
+                                themeHover.icon,
                                 isCyber
                                   ? "bg-[#00f2ff] text-black"
-                                  : "bg-sky-600 text-white hover:bg-sky-700"
+                                  : isBrutal
+                                    ? "bg-black text-white border-2 border-black rounded-none"
+                                    : "bg-sky-600 text-white hover:bg-sky-700"
                               )}
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
@@ -4701,11 +4800,12 @@ const Translator = () => {
                       <button
                         onClick={() => setIsSettingsOpen(false)}
                         className={cn(
-                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-200 border text-xs sm:text-sm",
+                          themeHover.surface,
                           isCyber 
                             ? "border border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10" 
                             : isBrutal
-                              ? "border-2 border-black bg-white text-black font-bold hover:bg-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                              ? "border-2 border-black bg-white text-black font-bold hover:bg-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] rounded-none"
                               : currentTheme.isDark
                                 ? "bg-white/10 text-white hover:bg-white/20 border-white/10"
                                 : "bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200"
@@ -4850,7 +4950,8 @@ const Translator = () => {
                   <button
                     onClick={() => setIsMissingKeyWarningOpen(false)}
                     className={cn(
-                      "w-full py-3 rounded-xl font-bold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-md",
+                      "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-wider text-xs sm:text-sm transition-all duration-200 shadow-md",
+                      themeHover.primary,
                       isCyber 
                         ? "bg-amber-400 text-black shadow-[0_0_15px_rgba(251,191,36,0.5)] hover:bg-amber-300 font-mono" 
                         : isBrutal
@@ -4950,7 +5051,8 @@ const Translator = () => {
                   <button
                     onClick={() => setIsApplyConfirmOpen(false)}
                     className={cn(
-                      "flex-1 py-2.5 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all",
+                      "flex-1 py-2.5 min-h-[44px] rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all duration-200",
+                      themeHover.surface,
                       isCyber 
                         ? "border border-[#00f2ff]/30 text-[#00f2ff] hover:bg-[#00f2ff]/10" 
                         : isBrutal
@@ -4960,7 +5062,7 @@ const Translator = () => {
                             : theme === 'dark'
                               ? "bg-white/10 text-gray-300 hover:bg-white/20 border border-white/10"
                               : currentTheme.isDark
-                                ? "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
+                                ? "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/10"
                                 : "bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
                     )}
                   >
@@ -4969,7 +5071,8 @@ const Translator = () => {
                   <button
                     onClick={applyStagedSettings}
                     className={cn(
-                      "flex-1 py-2.5 rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all",
+                      "flex-1 py-2.5 min-h-[44px] rounded-xl font-bold uppercase tracking-widest text-[10px] transition-all duration-200",
+                      themeHover.primary,
                       isCyber 
                         ? "bg-[#00f2ff] text-black shadow-[0_0_15px_rgba(0,242,255,0.4)] hover:shadow-[0_0_25px_rgba(0,242,255,0.6)]" 
                         : isBrutal
@@ -4991,6 +5094,345 @@ const Translator = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Rename Conversation Popup Dialog */}
+      <AnimatePresence>
+        {renamingSessionId && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setRenamingSessionId(null)}
+              className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 12 }}
+              className={cn(
+                "relative w-full max-w-sm p-5 rounded-2xl border shadow-2xl z-10",
+                isCyber
+                  ? "bg-black border-2 border-[#00f2ff] text-[#00f2ff] shadow-[0_0_30px_rgba(0,242,255,0.35)]"
+                  : isBrutal
+                    ? "bg-white border-4 border-black text-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none"
+                    : isGlass
+                      ? "bg-[#1a1c1e]/90 backdrop-blur-2xl border-white/20 text-white shadow-[0_8px_32px_0_rgba(31,38,135,0.45)]"
+                      : theme === 'dark'
+                        ? "bg-[#0a0a0a] border-white/20 text-white"
+                        : currentTheme.isDark
+                          ? "bg-[#262626] border-white/15 text-white"
+                          : "bg-white border-gray-200 text-gray-900"
+              )}
+            >
+              <form onSubmit={saveSessionRename} className="space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                      isCyber
+                        ? "bg-[#00f2ff]/15 text-[#00f2ff]"
+                        : isBrutal
+                          ? "bg-black text-white rounded-none"
+                          : theme === 'dark'
+                            ? "bg-white/15 text-white"
+                            : currentTheme.isDark
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : "bg-[#5A5A40]/10 text-[#5A5A40]"
+                    )}>
+                      <Pencil className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm sm:text-base font-bold truncate">
+                      {t.renameTitle}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRenamingSessionId(null)}
+                    aria-label={t.close}
+                    className={cn(
+                      "p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg transition-all duration-200",
+                      themeHover.icon,
+                      currentTheme.isDark ? "text-gray-400 hover:text-white hover:bg-white/10" : "text-gray-500 hover:text-black hover:bg-black/5"
+                    )}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <input
+                  ref={renameInputRef}
+                  type="text"
+                  value={renameTitleInput}
+                  onChange={(e) => setRenameTitleInput(e.target.value)}
+                  placeholder={t.renamePlaceholder}
+                  maxLength={80}
+                  className={cn(
+                    "w-full min-h-[44px] px-3.5 py-2.5 rounded-xl border text-sm transition-all focus:outline-none",
+                    isCyber
+                      ? "bg-black border-[#00f2ff] text-[#00f2ff] placeholder-[#00f2ff]/40 focus:ring-1 focus:ring-[#00f2ff]"
+                      : isBrutal
+                        ? "bg-white border-2 border-black text-black placeholder-gray-500 rounded-none focus:bg-yellow-50"
+                        : currentTheme.isDark
+                          ? "bg-white/5 border-white/15 text-white placeholder-gray-500 focus:border-white/40"
+                          : "bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400 focus:border-gray-500"
+                  )}
+                />
+
+                <div className="flex gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setRenamingSessionId(null)}
+                    className={cn(
+                      "flex-1 min-h-[44px] py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all duration-200",
+                      themeHover.surface,
+                      isCyber
+                        ? "border-[#00f2ff]/35 text-[#00f2ff] hover:bg-[#00f2ff]/10"
+                        : isBrutal
+                          ? "border-2 border-black bg-white text-black hover:bg-gray-100 rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                          : currentTheme.isDark
+                            ? "bg-white/5 border-white/15 text-gray-300 hover:bg-white/10"
+                            : "bg-gray-100 border-gray-200 text-gray-700 hover:bg-gray-200"
+                    )}
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!renameTitleInput.trim()}
+                    className={cn(
+                      "flex-1 min-h-[44px] py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all duration-200 disabled:opacity-40 disabled:pointer-events-none",
+                      themeHover.primary,
+                      isCyber
+                        ? "bg-[#00f2ff] text-black border-[#00f2ff]"
+                        : isBrutal
+                          ? "bg-black text-white border-2 border-black rounded-none shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                          : isGlass
+                            ? "bg-gradient-to-r from-indigo-500 to-purple-500 text-white border-white/20"
+                            : theme === 'dark'
+                              ? "bg-white text-black border-white"
+                              : currentTheme.isDark
+                                ? "bg-emerald-600 text-white border-transparent hover:bg-emerald-700"
+                                : "bg-[#5A5A40] text-white border-transparent hover:bg-[#474732]"
+                    )}
+                  >
+                    {t.saveName}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Portal Settings Dropdown (Floats cleanly above pinned Save/Done footer on small screens) */}
+      {isClientMounted && activeDropdown && dropdownCoords && createPortal(
+        <>
+          <div
+            className="fixed inset-0 z-[75] bg-transparent"
+            onClick={() => setActiveDropdown(null)}
+          />
+          <div
+            style={{
+              top: dropdownCoords.top,
+              left: dropdownCoords.left,
+              width: dropdownCoords.width,
+            }}
+            className={cn(
+              "fixed z-[80] rounded-xl border shadow-2xl overflow-hidden",
+              isCyber
+                ? "bg-black border-[#00f2ff] shadow-[0_0_28px_rgba(0,242,255,0.35)]"
+                : isBrutal
+                  ? "bg-white border-4 border-black text-black rounded-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                  : isGlass
+                    ? "bg-[#1a1c1e]/95 backdrop-blur-2xl border-white/25 text-white shadow-[0_12px_40px_rgba(0,0,0,0.55)]"
+                    : theme === 'dark'
+                      ? "bg-[#0f0f0f] border-white/25 text-white shadow-[0_12px_40px_rgba(0,0,0,0.8)]"
+                      : currentTheme.isDark
+                        ? "bg-[#262626] border-white/15 text-white shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
+                        : "bg-white border-gray-300 text-gray-900 shadow-[0_12px_36px_rgba(0,0,0,0.18)]"
+            )}
+          >
+            <div
+              style={{ maxHeight: dropdownCoords.maxHeight }}
+              className="overflow-y-auto overscroll-contain scrollbar-thin scrollbar-thumb-white/10"
+            >
+              {activeDropdown === 'theme' && (Object.keys(THEME_CONFIG) as Theme[]).map((thm) => {
+                const isSelected = stagedSettings.theme === thm
+                return (
+                  <button
+                    key={thm}
+                    type="button"
+                    onClick={() => {
+                      updateStaged('theme', thm)
+                      setActiveDropdown(null)
+                    }}
+                    className={cn(
+                      "w-full min-h-[44px] text-left px-4 py-3 text-sm transition-colors flex items-center justify-between border-b last:border-b-0",
+                      currentTheme.isDark ? "border-white/5" : "border-black/5",
+                      isSelected
+                        ? (isCyber ? "bg-[#00f2ff] text-black font-bold" : theme === 'dark' ? "bg-white text-black font-semibold" : isBrutal ? "bg-black text-white font-bold" : currentTheme.isDark ? "bg-emerald-600 text-white font-medium" : cn(currentTheme.accent, currentTheme.accentText, "font-semibold"))
+                        : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-200 hover:bg-white/10" : "text-gray-800 hover:bg-gray-100")
+                    )}
+                  >
+                    <span>{THEME_CONFIG[thm].name}</span>
+                    {isSelected && <Check className="w-4 h-4 shrink-0" />}
+                  </button>
+                )
+              })}
+
+              {activeDropdown === 'font' && ENGLISH_FONT_OPTIONS.map((f) => {
+                const isSelected = stagedSettings.fontStyle === f.id
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => {
+                      updateStaged('fontStyle', f.id as FontStyle)
+                      setActiveDropdown(null)
+                    }}
+                    className={cn(
+                      "w-full min-h-[44px] text-left px-4 py-3 text-sm transition-colors flex items-center justify-between border-b last:border-b-0",
+                      currentTheme.isDark ? "border-white/5" : "border-black/5",
+                      isSelected
+                        ? (isCyber ? "bg-[#00f2ff] text-black font-bold" : theme === 'dark' ? "bg-white text-black font-semibold" : isBrutal ? "bg-black text-white font-bold" : currentTheme.isDark ? "bg-emerald-600 text-white font-medium" : cn(currentTheme.accent, currentTheme.accentText, "font-semibold"))
+                        : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-200 hover:bg-white/10" : "text-gray-800 hover:bg-gray-100")
+                    )}
+                  >
+                    <span className={f.class}>{f.name}</span>
+                    {isSelected && <Check className="w-4 h-4 shrink-0" />}
+                  </button>
+                )
+              })}
+
+              {activeDropdown === 'mm-font' && MYANMAR_FONT_OPTIONS.map((f) => {
+                const isSelected = stagedSettings.myanmarFont === f.id
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => {
+                      updateStaged('myanmarFont', f.id)
+                      setActiveDropdown(null)
+                    }}
+                    className={cn(
+                      "w-full min-h-[44px] text-left px-4 py-3 text-sm transition-colors flex items-center justify-between border-b last:border-b-0",
+                      currentTheme.isDark ? "border-white/5" : "border-black/5",
+                      isSelected
+                        ? (isCyber ? "bg-[#00f2ff] text-black font-bold" : theme === 'dark' ? "bg-white text-black font-semibold" : isBrutal ? "bg-black text-white font-bold" : currentTheme.isDark ? "bg-emerald-600 text-white font-medium" : cn(currentTheme.accent, currentTheme.accentText, "font-semibold"))
+                        : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-200 hover:bg-white/10" : "text-gray-800 hover:bg-gray-100")
+                    )}
+                  >
+                    <div className="flex flex-col gap-0.5 min-w-0 pr-2">
+                      <span className="text-xs font-bold uppercase tracking-wider opacity-85">{f.name}</span>
+                      <div className={cn("text-base sm:text-lg leading-snug py-0.5", f.class)}>
+                        မင်္ဂလာပါ ကမ္ဘာလောက
+                      </div>
+                      <span className={cn("text-[11px]", isSelected ? "opacity-90" : "opacity-65")}>
+                        {stagedSettings.appLang === 'en' ? f.subtextEn : f.subtext}
+                      </span>
+                    </div>
+                    {isSelected && <Check className="w-4 h-4 shrink-0" />}
+                  </button>
+                )
+              })}
+
+              {activeDropdown === 'animation' && animations.map((anim) => {
+                const isSelected = stagedSettings.animation === anim
+                return (
+                  <button
+                    key={anim}
+                    type="button"
+                    onClick={() => {
+                      updateStaged('animation', anim)
+                      setActiveDropdown(null)
+                      if (anim !== 'typing' && stagedSettings.soundType !== 'Off') {
+                        playTypingSound(stagedSettings.soundType, true)
+                      }
+                    }}
+                    className={cn(
+                      "w-full min-h-[44px] text-left px-4 py-3 text-sm transition-colors capitalize flex items-center justify-between gap-2 border-b last:border-b-0",
+                      currentTheme.isDark ? "border-white/5" : "border-black/5",
+                      isSelected
+                        ? (isCyber ? "bg-[#00f2ff] text-black font-bold" : theme === 'dark' ? "bg-white text-black font-semibold" : isBrutal ? "bg-black text-white font-bold" : currentTheme.isDark ? "bg-emerald-600 text-white font-medium" : cn(currentTheme.accent, currentTheme.accentText, "font-semibold"))
+                        : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-200 hover:bg-white/10" : "text-gray-800 hover:bg-gray-100")
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      {anim === 'typing' && <Keyboard className="w-4 h-4" />}
+                      <span>{anim}</span>
+                    </span>
+                    {isSelected && <Check className="w-4 h-4 shrink-0" />}
+                  </button>
+                )
+              })}
+
+              {activeDropdown === 'model' && (stagedSettings.aiProvider === 'gemini' ? GEMINI_MODELS : GROQ_MODELS).map((m) => {
+                const isSelected = (stagedSettings.aiProvider === 'gemini' ? stagedSettings.geminiModel : stagedSettings.groqModel) === m.id
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => {
+                      if (stagedSettings.aiProvider === 'gemini') {
+                        updateStaged('geminiModel', m.id)
+                      } else {
+                        updateStaged('groqModel', m.id)
+                      }
+                      setActiveDropdown(null)
+                    }}
+                    className={cn(
+                      "w-full min-h-[44px] text-left px-4 py-3 text-sm transition-colors border-b last:border-b-0",
+                      currentTheme.isDark ? "border-white/5" : "border-stone-100",
+                      isSelected
+                        ? (isCyber
+                            ? "bg-[#00f2ff] text-black"
+                            : theme === 'dark'
+                              ? "bg-white text-black font-semibold"
+                              : isBrutal
+                                ? "bg-black text-white font-bold"
+                                : currentTheme.isDark
+                                  ? "bg-emerald-600/30 text-white font-medium"
+                                  : "bg-stone-100 text-stone-900 font-semibold")
+                        : (isCyber
+                            ? "text-[#00f2ff] hover:bg-[#00f2ff]/10"
+                            : currentTheme.isDark
+                              ? "text-gray-200 hover:bg-white/10"
+                              : "text-gray-800 hover:bg-gray-50")
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold flex items-center gap-2 flex-wrap">
+                        <span>{m.name}</span>
+                        <span className={cn(
+                          "text-[10px] px-2 py-0.5 rounded font-mono uppercase font-bold border",
+                          isSelected && (isCyber || theme === 'dark')
+                            ? "bg-emerald-700 text-white border-emerald-900"
+                            : currentTheme.isDark
+                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                              : "bg-emerald-100 text-emerald-800 border-emerald-300"
+                        )}>
+                          {m.badge}
+                        </span>
+                      </span>
+                      {isSelected && <Check className={cn("w-4 h-4 shrink-0", (isCyber || theme === 'dark') ? "text-emerald-700" : "text-emerald-500")} />}
+                    </div>
+                    <p className={cn(
+                      "text-xs mt-1 leading-snug",
+                      isSelected
+                        ? (isCyber || theme === 'dark' ? "text-black/80" : isBrutal ? "text-white/85" : currentTheme.isDark ? "text-gray-200" : "text-stone-700")
+                        : (isCyber ? "text-[#00f2ff]/70" : currentTheme.isDark ? "text-gray-400" : "text-stone-500")
+                    )}>
+                      {stagedSettings.appLang === 'en' ? m.descriptionEn : m.description}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
 
       {/* In-App GitHub Update Dialog */}
       <AppUpdateDialog
@@ -5033,7 +5475,10 @@ const Translator = () => {
               <button
                 type="button"
                 onClick={() => setShowIosInstallGuide(false)}
-                className="w-full py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700"
+                className={cn(
+                  "w-full min-h-[44px] py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all duration-200",
+                  themeHover.primary
+                )}
               >
                 {t.close}
               </button>
