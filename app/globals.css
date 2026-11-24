@@ -19,6 +19,26 @@
   --font-mm-padauk: 'Padauk', sans-serif;
 }
 
+html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 /* Distinctive & Diverse Myanmar Font Stylings */
 .font-mm-serif-elegant {
   font-family: 'Noto Serif Myanmar', serif !important;

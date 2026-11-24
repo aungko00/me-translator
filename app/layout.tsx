@@ -31,6 +31,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
+  interactiveWidget: 'resizes-content',
 };
 
 export const metadata: Metadata = {
@@ -70,8 +71,9 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
       ${merriweather.variable}
       ${ubuntu.variable}
       ${poppins.variable}
+      h-full overflow-hidden overscroll-none
     `}>
-      <body suppressHydrationWarning className="bg-[#212121] text-white font-sans">{children}</body>
+      <body suppressHydrationWarning className="bg-[#212121] text-white font-sans fixed inset-0 w-full h-full overflow-hidden overscroll-none">{children}</body>
     </html>
   );
 }

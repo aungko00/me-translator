@@ -90,8 +90,21 @@ if (missingPerms.length > 0) {
     '<uses-permission android:name="android.permission.INTERNET" />',
     `<uses-permission android:name="android.permission.INTERNET" />\n${permTags}`
   );
-  fs.writeFileSync(manifestPath, manifest, 'utf8');
 }
+
+if (manifest.includes('android:windowSoftInputMode=')) {
+  manifest = manifest.replace(
+    /android:windowSoftInputMode="[^"]*"/g,
+    'android:windowSoftInputMode="adjustResize"'
+  );
+} else {
+  manifest = manifest.replace(
+    /<activity\b/,
+    '<activity\n            android:windowSoftInputMode="adjustResize"'
+  );
+}
+
+fs.writeFileSync(manifestPath, manifest, 'utf8');
 
 // 3. Ensure FileProvider paths cover cacheDir & filesDir for direct APK installation
 const filePathsXml = path.join(androidDir, 'app', 'src', 'main', 'res', 'xml', 'file_paths.xml');

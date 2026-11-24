@@ -44,7 +44,7 @@ type FontStyle = 'sans' | 'mono' | 'display' | 'roboto' | 'open-sans' | 'lato' |
 type MyanmarFontStyle = 'serif-elegant' | 'headline-gothic' | 'square-modern' | 'ultra-light' | 'padauk-bold' | 'novel-serif' | 'sans-clean'
 type AppLang = 'en' | 'my'
 type AnimationType = 'typing' | 'typewriter' | 'fade' | 'slide' | 'zoom' | 'bounce' | 'flip' | 'rotate' | 'blur' | 'glitch' | 'elastic'
-type SoundType = 'Typing_1' | 'Typing_2'
+type SoundType = 'Off' | 'Typing_1' | 'Typing_2' | 'Soft_Click' | 'Bubble_Pop' | 'Crystal_Chime'
 
 const TypewriterText = ({ text, speed = 25, onChar, onComplete }: { text: string, speed?: number, onChar?: () => void, onComplete?: () => void }) => {
   const [displayedText, setDisplayedText] = useState('')
@@ -120,6 +120,23 @@ const CHAT_LANGUAGES: ChatLanguageOption[] = [
 ]
 
 const TARGET_CHAT_LANGUAGES = CHAT_LANGUAGES.filter((lang) => lang.id !== 'Auto')
+
+interface SoundOption {
+  id: SoundType
+  labelEn: string
+  labelMy: string
+  descEn: string
+  descMy: string
+}
+
+const SOUND_OPTIONS: SoundOption[] = [
+  { id: 'Off', labelEn: 'Silent (Off)', labelMy: 'အသံပိတ် (Silent)', descEn: 'No sound', descMy: 'အသံမထွက်ပါ' },
+  { id: 'Typing_1', labelEn: 'Typing 1', labelMy: 'ကီးဘုတ်သံ ၁', descEn: 'Mechanical click', descMy: 'ကီးဘုတ်နှိပ်သံ' },
+  { id: 'Typing_2', labelEn: 'Typing 2', labelMy: 'စာနှိပ်စက်သံ ၂', descEn: 'Classic typewriter', descMy: 'စာနှိပ်စက်သံ' },
+  { id: 'Soft_Click', labelEn: 'Soft Click', labelMy: 'ညင်သာသောသံ', descEn: 'Gentle key tap', descMy: 'ညင်သာသော ကီးသံ' },
+  { id: 'Bubble_Pop', labelEn: 'Bubble Pop', labelMy: 'ပေါက်ပေါက်သံ', descEn: 'Crisp pop tone', descMy: 'ချိုသာသော ပေါက်သံ' },
+  { id: 'Crystal_Chime', labelEn: 'Crystal Chime', labelMy: 'ခေါင်းလောင်းသံ', descEn: 'Soft bell chime', descMy: 'ကြည်လင်သော ခေါင်းလောင်းသံ' },
+]
 
 interface ChatSession {
   id: string
@@ -468,7 +485,7 @@ const TRANSLATIONS = {
     outputAnimation: 'Output Animation',
     animationSound: 'Animation Sound',
     soundType: 'Sound Type',
-    soundDesc: 'Animations and sounds will trigger when a new translation arrives. Select a sound to preview.',
+    soundDesc: 'Choose any sound style or Silent directly—no separate toggle needed. Tap any sound to preview it right away.',
     saveAppearance: 'Save Appearance & Fonts',
     saveAudio: 'Save Audio Settings',
     saveApi: 'Save API Configuration',
@@ -627,7 +644,7 @@ const TRANSLATIONS = {
     outputAnimation: 'စာသားပေါ်ထွက်ပုံ လှုပ်ရှားမှု (Animation)',
     animationSound: 'စာရိုက်သံ အသံထွက် (Sound)',
     soundType: 'အသံအမျိုးအစား',
-    soundDesc: 'ဘာသာပြန်ချက်အသစ် ရောက်ရှိလာချိန်တွင် လှုပ်ရှားမှုနှင့် အသံများ ထွက်ပေါ်မည်ဖြစ်ပါသည်။ နမူနာအသံကို ရွေးချယ်နားဆင်နိုင်ပါသည်။',
+    soundDesc: 'On/Off ခလုတ် သီးသန့်နှိပ်စရာမလိုဘဲ မိမိစိတ်ကြိုက် အသံအမျိုးအစား သို့မဟုတ် Silent ကို တိုက်ရိုက်ရွေးချယ်၍ နမူနာနားဆင်နိုင်ပါသည်။',
     saveAppearance: 'အသွင်အပြင်နှင့် ဖောင့်များ သိမ်းဆည်းမည်',
     saveAudio: 'အသံဆက်တင် သိမ်းဆည်းမည်',
     saveApi: 'API ပြင်ဆင်မှု သိမ်းဆည်းမည်',
@@ -784,7 +801,7 @@ const Translator = () => {
   const [appLang, setAppLang] = useState<AppLang>('my')
   const [animation, setAnimation] = useState<AnimationType>('typing')
   const [soundType, setSoundType] = useState<SoundType>('Typing_1')
-  const [soundEnabled, setSoundEnabled] = useState(true)
+  const soundEnabled = soundType !== 'Off'
   const [isListening, setIsListening] = useState(false)
   const [mounted, setMounted] = useState(false)
   
@@ -819,11 +836,10 @@ const Translator = () => {
   const applyAudioSettings = () => {
     setAnimation(stagedSettings.animation)
     setSoundType(stagedSettings.soundType)
-    setSoundEnabled(stagedSettings.soundEnabled)
     if (typeof window !== 'undefined') {
       localStorage.setItem('me_translator_animation', stagedSettings.animation)
       localStorage.setItem('me_translator_sound_type', stagedSettings.soundType)
-      localStorage.setItem('me_translator_sound_enabled', String(stagedSettings.soundEnabled))
+      localStorage.setItem('me_translator_sound_enabled', String(stagedSettings.soundType !== 'Off'))
     }
     setIsSettingsOpen(false)
   }
@@ -900,7 +916,6 @@ const Translator = () => {
     appLang: 'my' as AppLang,
     animation: 'typing' as AnimationType,
     soundType: 'Typing_1' as SoundType,
-    soundEnabled: true,
     aiProvider: 'gemini' as AIProvider,
     geminiModel: 'gemini-3.1-flash-lite',
     groqModel: 'openai/gpt-oss-120b',
@@ -1030,6 +1045,8 @@ const Translator = () => {
     }
   }, [])
 
+  const appShellRef = useRef<HTMLDivElement>(null)
+  const chatScrollRef = useRef<HTMLElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const apiKeyInputRef = useRef<HTMLInputElement>(null)
@@ -1055,16 +1072,76 @@ const Translator = () => {
   }, [activeSessionId])
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const scroller = chatScrollRef.current
+    if (scroller) {
+      scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' })
+    }
   }, [])
 
   const scrollToBottomQuick = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
+    const scroller = chatScrollRef.current
+    if (scroller) {
+      scroller.scrollTop = scroller.scrollHeight
+    }
   }, [])
 
   useEffect(() => {
     scrollToBottom()
   }, [messages, loadingSessionIds, scrollToBottom, activeSessionId])
+
+  // Lock root page & smoothly track visualViewport height for mobile / Android WebView keyboard
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return
+
+    const resetRootScroll = () => {
+      if (window.scrollX !== 0 || window.scrollY !== 0) {
+        window.scrollTo(0, 0)
+      }
+      if (document.documentElement.scrollTop !== 0) {
+        document.documentElement.scrollTop = 0
+      }
+      if (document.body.scrollTop !== 0) {
+        document.body.scrollTop = 0
+      }
+    }
+
+    let rafId = 0
+
+    const syncViewport = () => {
+      if (rafId) cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(() => {
+        resetRootScroll()
+        const shell = appShellRef.current
+        if (!shell) return
+
+        const vv = window.visualViewport
+        if (vv) {
+          const nextHeight = Math.round(vv.height)
+          const nextTop = Math.max(0, Math.round(vv.offsetTop))
+          shell.style.height = `${nextHeight}px`
+          shell.style.top = `${nextTop}px`
+        } else {
+          shell.style.height = '100dvh'
+          shell.style.top = '0px'
+        }
+      })
+    }
+
+    syncViewport()
+    const vv = window.visualViewport
+    vv?.addEventListener('resize', syncViewport)
+    vv?.addEventListener('scroll', syncViewport)
+    window.addEventListener('resize', syncViewport)
+    window.addEventListener('scroll', resetRootScroll, { passive: true })
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId)
+      vv?.removeEventListener('resize', syncViewport)
+      vv?.removeEventListener('scroll', syncViewport)
+      window.removeEventListener('resize', syncViewport)
+      window.removeEventListener('scroll', resetRootScroll)
+    }
+  }, [mounted])
 
   useEffect(() => {
     if (isSettingsOpen) {
@@ -1077,7 +1154,6 @@ const Translator = () => {
         appLang,
         animation,
         soundType,
-        soundEnabled,
         aiProvider,
         geminiModel,
         groqModel,
@@ -1087,7 +1163,7 @@ const Translator = () => {
         groqKeyCleared: false,
       })
     }
-  }, [isSettingsOpen, theme, fontStyle, myanmarFont, appLang, animation, soundType, soundEnabled, aiProvider, geminiModel, groqModel])
+  }, [isSettingsOpen, theme, fontStyle, myanmarFont, appLang, animation, soundType, aiProvider, geminiModel, groqModel])
 
   // Load initial state from localStorage
   useEffect(() => {
@@ -1153,10 +1229,12 @@ const Translator = () => {
     if (savedAnimation) setAnimation(savedAnimation as AnimationType)
 
     const savedSoundType = localStorage.getItem('me_translator_sound_type')
-    if (savedSoundType) setSoundType(savedSoundType as SoundType)
-
     const savedSoundEnabled = localStorage.getItem('me_translator_sound_enabled')
-    if (savedSoundEnabled !== null) setSoundEnabled(savedSoundEnabled === 'true')
+    if (savedSoundEnabled === 'false' && savedSoundType !== 'Off') {
+      setSoundType('Off')
+    } else if (savedSoundType && SOUND_OPTIONS.some(opt => opt.id === savedSoundType)) {
+      setSoundType(savedSoundType as SoundType)
+    }
 
     const defaultV2Applied = localStorage.getItem('me_translator_default_mm_en_v1')
     const savedSourceLang = localStorage.getItem('me_translator_source_lang')
@@ -1279,11 +1357,8 @@ const Translator = () => {
 
   useEffect(() => {
     localStorage.setItem('me_translator_sound_type', soundType)
+    localStorage.setItem('me_translator_sound_enabled', String(soundType !== 'Off'))
   }, [soundType])
-
-  useEffect(() => {
-    localStorage.setItem('me_translator_sound_enabled', String(soundEnabled))
-  }, [soundEnabled])
 
   useEffect(() => {
     localStorage.setItem('me_translator_source_lang', sourceLang)
@@ -1308,56 +1383,114 @@ const Translator = () => {
     }
   }, [chatLangDropdown])
 
-  const playTypingSound = useCallback((type: SoundType = soundType) => {
-    if (!soundEnabled) return
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
-    }
-    const ctx = audioCtxRef.current
-    if (ctx.state === 'suspended') ctx.resume()
-
-    if (type === 'Typing_1') {
-      // Realistic mechanical typing sound (current)
-      const bufferSize = ctx.sampleRate * 0.05
-      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
-      const data = buffer.getChannelData(0)
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = Math.random() * 2 - 1
+  const playTypingSound = useCallback((type: SoundType = soundType, bypassMute = false) => {
+    if (type === 'Off') return
+    if (!bypassMute && !soundEnabled) return
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
       }
+      const ctx = audioCtxRef.current
+      if (ctx.state === 'suspended') ctx.resume()
 
-      const noise = ctx.createBufferSource()
-      noise.buffer = buffer
+      if (type === 'Typing_1') {
+        // Realistic mechanical typing sound
+        const bufferSize = ctx.sampleRate * 0.05
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
+        const data = buffer.getChannelData(0)
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1
+        }
 
-      const filter = ctx.createBiquadFilter()
-      filter.type = 'bandpass'
-      filter.frequency.value = 1000 + Math.random() * 500
-      filter.Q.value = 2
+        const noise = ctx.createBufferSource()
+        noise.buffer = buffer
 
-      const gain = ctx.createGain()
-      gain.gain.setValueAtTime(0.3, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04)
+        const filter = ctx.createBiquadFilter()
+        filter.type = 'bandpass'
+        filter.frequency.value = 1000 + Math.random() * 500
+        filter.Q.value = 2
 
-      noise.connect(filter)
-      filter.connect(gain)
-      gain.connect(ctx.destination)
+        const gain = ctx.createGain()
+        gain.gain.setValueAtTime(0.3, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04)
 
-      noise.start()
-    } else if (type === 'Typing_2') {
-      // Simple typewriter click
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      
-      osc.type = 'square'
-      osc.frequency.setValueAtTime(150 + Math.random() * 50, ctx.currentTime)
-      
-      gain.gain.setValueAtTime(0.15, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.02)
-      
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      
-      osc.start()
-      osc.stop(ctx.currentTime + 0.03)
+        noise.connect(filter)
+        filter.connect(gain)
+        gain.connect(ctx.destination)
+
+        noise.start()
+      } else if (type === 'Typing_2') {
+        // Classic typewriter click
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+
+        osc.type = 'square'
+        osc.frequency.setValueAtTime(150 + Math.random() * 50, ctx.currentTime)
+
+        gain.gain.setValueAtTime(0.15, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.02)
+
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+
+        osc.start()
+        osc.stop(ctx.currentTime + 0.03)
+      } else if (type === 'Soft_Click') {
+        // Gentle damped key tap
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+
+        osc.type = 'triangle'
+        osc.frequency.setValueAtTime(480 + Math.random() * 40, ctx.currentTime)
+        osc.frequency.exponentialRampToValueAtTime(160, ctx.currentTime + 0.025)
+
+        gain.gain.setValueAtTime(0.18, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.025)
+
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+
+        osc.start()
+        osc.stop(ctx.currentTime + 0.03)
+      } else if (type === 'Bubble_Pop') {
+        // Crisp upward pop tone
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(260, ctx.currentTime)
+        osc.frequency.exponentialRampToValueAtTime(620, ctx.currentTime + 0.045)
+
+        gain.gain.setValueAtTime(0.22, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05)
+
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+
+        osc.start()
+        osc.stop(ctx.currentTime + 0.055)
+      } else if (type === 'Crystal_Chime') {
+        // Soft bell chime
+        const now = ctx.currentTime
+        ;[880, 1320].forEach((freq, idx) => {
+          const osc = ctx.createOscillator()
+          const gain = ctx.createGain()
+
+          osc.type = 'sine'
+          osc.frequency.setValueAtTime(freq, now)
+
+          gain.gain.setValueAtTime(idx === 0 ? 0.14 : 0.07, now)
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14)
+
+          osc.connect(gain)
+          gain.connect(ctx.destination)
+
+          osc.start(now)
+          osc.stop(now + 0.15)
+        })
+      }
+    } catch {
+      // Ignore audio errors on restricted environments
     }
   }, [soundEnabled, soundType])
 
@@ -1824,7 +1957,7 @@ const Translator = () => {
   }
 
   if (!mounted) {
-    return <div className="min-h-screen bg-[#212121]" />
+    return <div className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-[#212121]" />
   }
 
   const isCyber = theme === 'cyberpunk'
@@ -1869,14 +2002,16 @@ const Translator = () => {
   }
 
   const animations: AnimationType[] = ['typing', 'typewriter', 'fade', 'slide', 'zoom', 'bounce', 'flip', 'rotate', 'blur', 'glitch', 'elastic']
-  const sounds: SoundType[] = ['Typing_1', 'Typing_2']
 
   return (
-    <div className={cn(
-      "flex flex-col h-screen w-full max-w-full transition-all duration-500 relative overflow-hidden font-sans",
-      currentTheme.bg,
-      currentTheme.text
-    )}>
+    <div
+      ref={appShellRef}
+      className={cn(
+        "fixed inset-x-0 top-0 flex flex-col h-[100dvh] w-full max-w-full transition-colors duration-500 overflow-hidden overscroll-none font-sans",
+        currentTheme.bg,
+        currentTheme.text
+      )}
+    >
       {/* Cyberpunk Scanline & Grid Overlay */}
       {isCyber && (
         <>
@@ -1892,7 +2027,7 @@ const Translator = () => {
 
       {/* Header */}
       <header className={cn(
-        "flex items-center justify-between px-4 py-3 sticky top-0 z-30 backdrop-blur-md transition-all duration-500",
+        "shrink-0 relative flex items-center justify-between px-4 py-3 z-30 backdrop-blur-md transition-colors duration-500",
         currentTheme.header,
         "border-b",
         currentTheme.border,
@@ -2089,10 +2224,16 @@ const Translator = () => {
       </header>
 
       {/* Chat Area */}
-      <main className="flex-1 min-w-0 w-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/10">
-        <div className="max-w-3xl w-full min-w-0 mx-auto px-4 py-8">
+      <main
+        ref={chatScrollRef}
+        className="flex-1 min-h-0 min-w-0 w-full overflow-y-auto overflow-x-hidden overscroll-y-contain scrollbar-thin scrollbar-thumb-white/10"
+      >
+        <div className={cn(
+          "max-w-3xl w-full min-w-0 mx-auto px-4 py-6 sm:py-8",
+          messages.length === 0 && "min-h-full flex flex-col"
+        )}>
           {messages.length === 0 ? (
-            <div className="h-[60vh] flex flex-col items-center justify-center text-center space-y-6">
+            <div className="my-auto flex flex-col items-center justify-center text-center space-y-5 py-2">
               <div className={cn(
                 "w-16 h-16 rounded-2xl flex items-center justify-center mb-4 transition-all duration-500",
                 isCyber ? "bg-black border-2 border-[#00f2ff] shadow-[0_0_30px_rgba(0,242,255,0.4)] animate-pulse" : (currentTheme.isDark ? "bg-emerald-500/10" : "bg-emerald-500/5")
@@ -2294,7 +2435,7 @@ const Translator = () => {
 
       {/* Input Area */}
       <footer className={cn(
-        "p-2 sm:p-4 bg-gradient-to-t to-transparent transition-all duration-500 w-full min-w-0 overflow-hidden",
+        "shrink-0 p-2 sm:p-4 bg-gradient-to-t to-transparent transition-colors duration-500 w-full min-w-0 overflow-hidden",
         currentTheme.isDark ? "from-black via-black" : "from-white via-white"
       )}>
         <div className="max-w-3xl w-full min-w-0 mx-auto relative">
@@ -2348,6 +2489,18 @@ const Translator = () => {
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onFocus={() => {
+                if (typeof window !== 'undefined') {
+                  window.scrollTo(0, 0)
+                  document.documentElement.scrollTop = 0
+                  document.body.scrollTop = 0
+                  requestAnimationFrame(() => {
+                    window.scrollTo(0, 0)
+                    document.documentElement.scrollTop = 0
+                    document.body.scrollTop = 0
+                  })
+                }
+              }}
               onKeyDown={handleKeyDown}
               placeholder={
                 appLang === 'en'
@@ -2356,7 +2509,7 @@ const Translator = () => {
               }
               rows={1}
               className={cn(
-                "w-full border rounded-2xl py-3 sm:py-4 pl-4 pr-24 sm:pr-28 focus:outline-none transition-all duration-500 resize-none min-h-[48px] sm:min-h-[56px] max-h-32 overflow-y-auto z-10 text-sm sm:text-base",
+                "w-full border rounded-2xl py-3 sm:py-4 pl-4 pr-24 sm:pr-28 focus:outline-none transition-colors duration-300 resize-none min-h-[48px] sm:min-h-[56px] max-h-32 overflow-y-auto z-10 text-base",
                 currentTheme.input,
                 currentTheme.text,
                 currentTheme.border,
@@ -2857,7 +3010,7 @@ const Translator = () => {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className={cn(
-                "relative w-full max-w-lg flex flex-col rounded-2xl border shadow-2xl z-10 transition-all duration-500 max-h-[86dvh] overflow-hidden",
+                "relative w-full max-w-lg flex flex-col rounded-2xl border shadow-2xl z-10 transition-colors duration-500 max-h-[90dvh] overflow-hidden",
                 isCyber 
                   ? "bg-black border-[#00f2ff] shadow-[0_0_50px_rgba(0,242,255,0.4)] font-mono" 
                   : isGlass
@@ -2867,14 +3020,14 @@ const Translator = () => {
                       : cn(currentTheme.sidebar, currentTheme.border, currentTheme.text)
               )}
             >
-              {/* Fixed Header */}
+              {/* Fixed Modal Header & Tabs */}
               <div className={cn(
-                "p-4 sm:p-6 pb-0 border-b transition-all duration-500",
+                "shrink-0 px-4 pt-4 sm:px-6 sm:pt-5 pb-3 border-b transition-colors duration-500",
                 isCyber ? "border-[#00f2ff]/30" : currentTheme.border
               )}>
-                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <h3 className={cn(
-                    "text-lg sm:text-xl font-bold uppercase tracking-widest transition-all duration-500",
+                    "text-lg sm:text-xl font-bold uppercase tracking-widest transition-colors duration-500",
                     isCyber ? "text-[#00f2ff] drop-shadow-[0_0_10px_#00f2ff]" : currentTheme.text
                   )}>
                     {isCyber ? "SYSTEM_OVERRIDE" : tSettings.settings}
@@ -2882,17 +3035,18 @@ const Translator = () => {
                   <button 
                     onClick={() => setIsSettingsOpen(false)}
                     className={cn(
-                      "p-1 rounded-full transition-colors",
+                      "p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full transition-colors",
                       isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : cn(currentTheme.textMuted, "hover:bg-black/5")
                     )}
+                    aria-label={tSettings.close}
                   >
-                    <X className="w-6 h-6" />
+                    <X className="w-5 h-5 sm:w-6 sm:h-6" />
                   </button>
                 </div>
 
                 {/* Settings Tabs - Fixed */}
                 <div className={cn(
-                  "flex items-center gap-1 p-1 rounded-xl mb-6 border transition-all duration-500",
+                  "flex items-center gap-1 p-1 rounded-xl border transition-colors duration-500",
                   isCyber ? "bg-black border-[#00f2ff]/30" : isGlass ? "bg-white/5 border-white/10" : isBrutal ? "bg-white border-4 border-black" : cn(currentTheme.bg, currentTheme.border)
                 )}>
                   {[
@@ -2905,7 +3059,10 @@ const Translator = () => {
                   ].map((tab) => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveSettingsTab(tab.id as any)}
+                      onClick={() => {
+                        setActiveSettingsTab(tab.id as any)
+                        setActiveDropdown(null)
+                      }}
                       title={tab.label}
                       aria-label={tab.label}
                       className={cn(
@@ -2929,25 +3086,27 @@ const Translator = () => {
                 </div>
               </div>
 
-              {/* Scrollable Content */}
-              <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 pt-0 pb-6 space-y-8 scrollbar-thin scrollbar-thumb-white/10">
-                <div className="min-h-[350px] min-w-0 w-full">
-                  {activeSettingsTab === 'appearance' && (
+              {/* Active Tab Frame (Fixed Top Anchor + Middle Scroll Area + Fixed Bottom Action) */}
+              <div className="flex-1 min-h-0 flex flex-col overflow-hidden min-w-0 w-full">
+                {activeSettingsTab === 'appearance' && (
                   <motion.div 
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="space-y-6"
+                    className="flex-1 min-h-0 flex flex-col overflow-hidden min-w-0 w-full"
                   >
-                    {/* App Language Selector */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
+                    {/* Pinned Top Anchor: App Language Selector */}
+                    <div className={cn(
+                      "shrink-0 px-4 sm:px-6 pt-3 pb-3 border-b space-y-2 relative z-20",
+                      isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
+                    )}>
+                      <div className="flex items-center justify-between gap-2">
                         <label className={cn(
-                          "text-xs font-black uppercase tracking-[0.2em] transition-all duration-500",
+                          "text-xs font-black uppercase tracking-[0.2em] transition-colors duration-500",
                           isCyber ? "text-[#00f2ff]" : cn(currentTheme.text, "opacity-90")
                         )}>
                           {tSettings.appLanguage}
                         </label>
-                        <span className="text-[10px] opacity-60 font-medium">{tSettings.appLangDesc}</span>
+                        <span className="text-[10px] opacity-60 font-medium truncate">{tSettings.appLangDesc}</span>
                       </div>
                       <div className={cn(
                         "grid grid-cols-2 gap-2 p-1.5 rounded-xl border transition-all",
@@ -3002,6 +3161,9 @@ const Translator = () => {
                         </button>
                       </div>
                     </div>
+
+                    {/* Scrollable Middle: Theme & Fonts */}
+                    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain px-4 sm:px-6 py-4 space-y-5 relative z-10 scrollbar-thin scrollbar-thumb-white/10">
 
                     {/* Theme Section */}
                     <div className="space-y-2 relative">
@@ -3219,12 +3381,17 @@ const Translator = () => {
                       </AnimatePresence>
                     </div>
 
-                    {/* Isolated Tab Save: Appearance & Fonts */}
-                    <div className="pt-4 border-t border-black/10 dark:border-white/10">
+                    </div>
+
+                    {/* Pinned Bottom Footer: Save Appearance & Fonts */}
+                    <div className={cn(
+                      "shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-t",
+                      isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
+                    )}>
                       <button
                         onClick={applyAppearanceSettings}
                         className={cn(
-                          "w-full py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
                           isCyber 
                             ? "bg-[#00f2ff] text-black shadow-[0_0_20px_rgba(0,242,255,0.5)] border-[#00f2ff] hover:bg-black hover:text-[#00f2ff]" 
                             : isBrutal
@@ -3244,12 +3411,15 @@ const Translator = () => {
                   <motion.div 
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="space-y-6"
+                    className="flex-1 min-h-0 flex flex-col overflow-hidden min-w-0 w-full"
                   >
-                    {/* Animation Dropdown */}
-                    <div className="space-y-2 relative">
+                    {/* Pinned Top Anchor: Output Animation Dropdown (Floats cleanly above scrollable sound options) */}
+                    <div className={cn(
+                      "shrink-0 px-4 sm:px-6 pt-3 pb-3 border-b space-y-2 relative z-30",
+                      isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
+                    )}>
                       <label className={cn(
-                        "text-xs font-black uppercase tracking-[0.2em] transition-all duration-500",
+                        "text-xs font-black uppercase tracking-[0.2em] transition-colors duration-500",
                         isCyber ? "text-[#00f2ff]" : cn(currentTheme.text, "opacity-90")
                       )}>
                         {tSettings.outputAnimation}
@@ -3257,7 +3427,7 @@ const Translator = () => {
                       <button
                         onClick={() => setActiveDropdown(activeDropdown === 'animation' ? null : 'animation')}
                         className={cn(
-                          "w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all",
+                          "w-full min-h-[44px] flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all",
                           isCyber ? "bg-black border-[#00f2ff] text-[#00f2ff] shadow-[inset_0_0_10px_rgba(0,242,255,0.1)]" : cn(currentTheme.bg, currentTheme.border, currentTheme.text)
                         )}
                       >
@@ -3270,120 +3440,129 @@ const Translator = () => {
                       
                       <AnimatePresence>
                         {activeDropdown === 'animation' && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className={cn(
-                              "absolute top-full left-0 right-0 mt-2 z-20 rounded-xl border shadow-xl overflow-hidden",
-                              isCyber 
-                                ? "bg-black border-[#00f2ff]" 
-                                : currentTheme.isDark 
-                                  ? "bg-[#282828] border-white/10" 
-                                  : "bg-white border-gray-200 text-gray-800 shadow-xl"
-                            )}
-                          >
-                            <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-                              {animations.map((anim) => (
-                                <button
-                                  key={anim}
-                                  onClick={() => {
-                                    updateStaged('animation', anim)
-                                    setActiveDropdown(null)
-                                    // Play sound once for non-typing animations
-                                    if (anim !== 'typing' && stagedSettings.soundEnabled) playTypingSound()
-                                  }}
-                                  className={cn(
-                                    "w-full text-left px-4 py-3 text-sm transition-colors capitalize flex items-center gap-2",
-                                    stagedSettings.animation === anim 
-                                      ? (isCyber ? "bg-[#00f2ff] text-black" : currentTheme.isDark ? "bg-emerald-600 text-white font-medium" : cn(currentTheme.accent, currentTheme.accentText, "font-semibold"))
-                                      : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-100")
-                                  )}
-                                >
-                                  {anim === 'typing' && <Keyboard className="w-4 h-4" />}
-                                  {anim}
-                                </button>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className={cn(
+                                "absolute top-full left-4 right-4 sm:left-6 sm:right-6 mt-1.5 z-40 rounded-xl border shadow-2xl overflow-hidden",
+                                isCyber 
+                                  ? "bg-black border-[#00f2ff]" 
+                                  : currentTheme.isDark 
+                                    ? "bg-[#282828] border-white/10" 
+                                    : "bg-white border-gray-200 text-gray-800 shadow-xl"
+                              )}
+                            >
+                              <div className="max-h-56 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
+                                {animations.map((anim) => (
+                                  <button
+                                    key={anim}
+                                    onClick={() => {
+                                      updateStaged('animation', anim)
+                                      setActiveDropdown(null)
+                                      // Play sound once for non-typing animations
+                                      if (anim !== 'typing' && stagedSettings.soundType !== 'Off') {
+                                        playTypingSound(stagedSettings.soundType, true)
+                                      }
+                                    }}
+                                    className={cn(
+                                      "w-full text-left px-4 py-3 text-sm transition-colors capitalize flex items-center gap-2",
+                                      stagedSettings.animation === anim 
+                                        ? (isCyber ? "bg-[#00f2ff] text-black" : currentTheme.isDark ? "bg-emerald-600 text-white font-medium" : cn(currentTheme.accent, currentTheme.accentText, "font-semibold"))
+                                        : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-100")
+                                    )}
+                                  >
+                                    {anim === 'typing' && <Keyboard className="w-4 h-4" />}
+                                    {anim}
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
 
-                    {/* Sound Dropdown */}
-                    <div className="space-y-2 relative">
-                      <div className="flex items-center justify-between">
+                      {/* Scrollable Middle: Animation Sound Options */}
+                      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain px-4 sm:px-6 py-4 space-y-4 relative z-10 scrollbar-thin scrollbar-thumb-white/10">
+                      {/* Direct Animation Sound Picker (No On/Off Toggle Needed) */}
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
                         <label className={cn(
                           "text-xs font-black uppercase tracking-[0.2em] transition-all duration-500",
                           isCyber ? "text-[#00f2ff]" : cn(currentTheme.text, "opacity-90")
                         )}>
                           {tSettings.animationSound}
                         </label>
-                        <button 
-                          onClick={() => updateStaged('soundEnabled', !stagedSettings.soundEnabled)}
-                          className={cn(
-                            "flex items-center gap-1 text-[10px] font-bold uppercase transition-all",
-                            stagedSettings.soundEnabled 
-                              ? (isCyber ? "text-[#00f2ff]" : cn(currentTheme.icon)) 
-                              : "text-gray-500"
-                          )}
-                        >
-                          {stagedSettings.soundEnabled ? <Volume2 className="w-3 h-3" /> : <VolumeX className="w-3 h-3" />}
-                          {stagedSettings.soundEnabled ? tSettings.soundOn : tSettings.soundOff}
-                        </button>
+                        <span className={cn(
+                          "text-[11px] font-semibold flex items-center gap-1",
+                          stagedSettings.soundType === 'Off'
+                            ? "opacity-60"
+                            : isCyber ? "text-[#00f2ff]" : currentTheme.icon
+                        )}>
+                          {stagedSettings.soundType === 'Off' ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                          {stagedSettings.appLang === 'my'
+                            ? SOUND_OPTIONS.find(o => o.id === stagedSettings.soundType)?.labelMy
+                            : SOUND_OPTIONS.find(o => o.id === stagedSettings.soundType)?.labelEn}
+                        </span>
                       </div>
-                      
-                      <button
-                        onClick={() => setActiveDropdown(activeDropdown === 'sound' ? null : 'sound')}
-                        disabled={!stagedSettings.soundEnabled}
-                        className={cn(
-                          "w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border transition-all",
-                          !stagedSettings.soundEnabled && "opacity-50 cursor-not-allowed",
-                          isCyber ? "bg-black border-[#00f2ff] text-[#00f2ff] shadow-[inset_0_0_10px_rgba(0,242,255,0.1)]" : cn(currentTheme.bg, currentTheme.border, currentTheme.text)
-                        )}
-                      >
-                        <span className="capitalize text-sm sm:text-base">{stagedSettings.soundType}</span>
-                        <ChevronDown className={cn("w-4 h-4 transition-transform", activeDropdown === 'sound' && "rotate-180")} />
-                      </button>
-                      
-                      <AnimatePresence>
-                        {activeDropdown === 'sound' && stagedSettings.soundEnabled && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className={cn(
-                              "absolute top-full left-0 right-0 mt-2 z-20 rounded-xl border shadow-xl overflow-hidden",
-                              isCyber 
-                                ? "bg-black border-[#00f2ff]" 
-                                : currentTheme.isDark 
-                                  ? "bg-[#282828] border-white/10" 
-                                  : "bg-white border-gray-200 text-gray-800 shadow-xl"
-                            )}
-                          >
-                            <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10">
-                              {sounds.map((s) => (
-                                <button
-                                  key={s}
-                                  onClick={() => {
-                                    updateStaged('soundType', s)
-                                    setActiveDropdown(null)
-                                    playTypingSound()
-                                  }}
-                                  className={cn(
-                                    "w-full text-left px-4 py-3 text-sm transition-colors capitalize",
-                                    stagedSettings.soundType === s 
-                                      ? (isCyber ? "bg-[#00f2ff] text-black" : currentTheme.isDark ? "bg-emerald-600 text-white font-medium" : cn(currentTheme.accent, currentTheme.accentText, "font-semibold"))
-                                      : (isCyber ? "text-[#00f2ff] hover:bg-[#00f2ff]/10" : currentTheme.isDark ? "text-gray-300 hover:bg-white/5" : "text-gray-700 hover:bg-gray-100")
-                                  )}
-                                >
-                                  {s}
-                                </button>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {SOUND_OPTIONS.map((opt) => {
+                          const isSelected = stagedSettings.soundType === opt.id
+                          const isSilent = opt.id === 'Off'
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => {
+                                updateStaged('soundType', opt.id)
+                                if (!isSilent) {
+                                  playTypingSound(opt.id, true)
+                                }
+                              }}
+                              className={cn(
+                                "w-full min-h-[48px] px-3.5 py-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-2.5",
+                                isSelected
+                                  ? (isCyber
+                                      ? "bg-[#00f2ff] text-black border-[#00f2ff] shadow-[0_0_15px_rgba(0,242,255,0.4)]"
+                                      : isBrutal
+                                        ? "bg-black text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                                        : currentTheme.isDark
+                                          ? "bg-emerald-600/25 border-emerald-500 text-white"
+                                          : "bg-[#5A5A40] text-white border-[#5A5A40] shadow-sm")
+                                  : (isCyber
+                                      ? "bg-black border-[#00f2ff]/30 text-[#00f2ff] hover:border-[#00f2ff] hover:bg-[#00f2ff]/10"
+                                      : currentTheme.isDark
+                                        ? "bg-[#222222] border-white/10 text-gray-200 hover:bg-white/5"
+                                        : "bg-white border-gray-200 text-gray-800 hover:bg-gray-50")
+                              )}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className={cn(
+                                  "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                                  isSelected
+                                    ? (isCyber ? "bg-black/15 text-black" : "bg-white/15 text-current")
+                                    : (isCyber ? "bg-[#00f2ff]/10 text-[#00f2ff]" : currentTheme.isDark ? "bg-white/5 text-gray-400" : "bg-black/5 text-gray-500")
+                                )}>
+                                  {isSilent ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                                </span>
+                                <div className="min-w-0">
+                                  <div className="text-sm font-semibold truncate">
+                                    {stagedSettings.appLang === 'my' ? opt.labelMy : opt.labelEn}
+                                  </div>
+                                  <div className={cn(
+                                    "text-[11px] truncate",
+                                    isSelected ? "opacity-85" : "opacity-60"
+                                  )}>
+                                    {stagedSettings.appLang === 'my' ? opt.descMy : opt.descEn}
+                                  </div>
+                                </div>
+                              </div>
+                              {isSelected && <Check className="w-4 h-4 shrink-0" />}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
 
                     <div className={cn(
@@ -3400,12 +3579,17 @@ const Translator = () => {
                       </p>
                     </div>
 
-                    {/* Isolated Tab Save: Audio & Effects */}
-                    <div className="pt-4 border-t border-black/10 dark:border-white/10">
+                    </div>
+
+                    {/* Pinned Bottom Footer: Save Audio Settings */}
+                    <div className={cn(
+                      "shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-t",
+                      isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
+                    )}>
                       <button
                         onClick={applyAudioSettings}
                         className={cn(
-                          "w-full py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
                           isCyber 
                             ? "bg-[#00f2ff] text-black shadow-[0_0_20px_rgba(0,242,255,0.5)] border-[#00f2ff] hover:bg-black hover:text-[#00f2ff]" 
                             : isBrutal
@@ -3425,30 +3609,35 @@ const Translator = () => {
                   <motion.div 
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="space-y-6 min-w-0 w-full"
+                    className="flex-1 min-h-0 flex flex-col overflow-hidden min-w-0 w-full"
                   >
-                    {/* API Provider & Model Configuration Section */}
-                    <div className="space-y-5 min-w-0 w-full">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-black/5 dark:border-white/5 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Zap className={cn("w-4 h-4", isCyber ? "text-[#00f2ff]" : "text-amber-500")} />
-                          <h4 className={cn(
-                            "text-sm font-bold uppercase tracking-widest",
-                            isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-white" : "text-gray-900"
-                          )}>
-                            {tSettings.aiProviderModel}
-                          </h4>
-                        </div>
-                        <div className={cn(
-                          "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide border self-start sm:self-auto",
-                          currentTheme.isDark 
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" 
-                            : "bg-emerald-50 text-emerald-800 border-emerald-300"
+                    {/* Pinned Top Header: AI Provider & Model */}
+                    <div className={cn(
+                      "shrink-0 px-4 sm:px-6 pt-3 pb-3 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0",
+                      isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
+                    )}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Zap className={cn("w-4 h-4 shrink-0", isCyber ? "text-[#00f2ff]" : "text-amber-500")} />
+                        <h4 className={cn(
+                          "text-sm font-bold uppercase tracking-widest truncate",
+                          isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-white" : "text-gray-900"
                         )}>
-                          <Lock className="w-3 h-3" />
-                          <span>{tSettings.e2eSecurityBadge}</span>
-                        </div>
+                          {tSettings.aiProviderModel}
+                        </h4>
                       </div>
+                      <div className={cn(
+                        "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide border self-start sm:self-auto shrink-0",
+                        currentTheme.isDark 
+                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" 
+                          : "bg-emerald-50 text-emerald-800 border-emerald-300"
+                      )}>
+                        <Lock className="w-3 h-3" />
+                        <span>{tSettings.e2eSecurityBadge}</span>
+                      </div>
+                    </div>
+
+                    {/* Scrollable Middle: Provider, Model, API Key Vault & Guides */}
+                    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain px-4 sm:px-6 py-4 space-y-5 min-w-0 w-full scrollbar-thin scrollbar-thumb-white/10">
 
                       {/* 1. AI Provider Switcher (Gemini vs Groq) */}
                       <div className="space-y-2">
@@ -3933,12 +4122,15 @@ const Translator = () => {
                       )}
                     </div>
 
-                    {/* Isolated Tab Save: API Configuration */}
-                    <div className="pt-4 border-t border-black/10 dark:border-white/10">
+                    {/* Pinned Bottom Footer: Save API Configuration */}
+                    <div className={cn(
+                      "shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-t",
+                      isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
+                    )}>
                       <button
                         onClick={applyApiSettings}
                         className={cn(
-                          "w-full py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
                           isCyber 
                             ? "bg-[#00f2ff] text-black shadow-[0_0_20px_rgba(0,242,255,0.5)] border-[#00f2ff] hover:bg-black hover:text-[#00f2ff]" 
                             : isBrutal
@@ -3958,18 +4150,24 @@ const Translator = () => {
                   <motion.div 
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="space-y-6 min-w-0 w-full"
+                    className="flex-1 min-h-0 flex flex-col overflow-hidden min-w-0 w-full"
                   >
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Shield className={cn("w-4 h-4", isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-emerald-500" : "text-[#5A5A40]")} />
-                        <h4 className={cn(
-                          "text-sm font-bold uppercase tracking-widest",
-                          isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-white" : "text-gray-900"
-                        )}>
-                          {tSettings.permissionsTitle}
-                        </h4>
-                      </div>
+                    {/* Pinned Top Header: Device & System Permissions */}
+                    <div className={cn(
+                      "shrink-0 px-4 sm:px-6 pt-3 pb-3 border-b flex items-center gap-2 min-w-0",
+                      isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
+                    )}>
+                      <Shield className={cn("w-4 h-4 shrink-0", isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-emerald-500" : "text-[#5A5A40]")} />
+                      <h4 className={cn(
+                        "text-sm font-bold uppercase tracking-widest truncate",
+                        isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-white" : "text-gray-900"
+                      )}>
+                        {tSettings.permissionsTitle}
+                      </h4>
+                    </div>
+
+                    {/* Scrollable Middle: Permissions Controls & Guide */}
+                    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain px-4 sm:px-6 py-4 space-y-4 min-w-0 w-full scrollbar-thin scrollbar-thumb-white/10">
 
                       {/* Current Status List (Interactive rows) */}
                       <div className="space-y-3">
@@ -4145,12 +4343,15 @@ const Translator = () => {
                       </div>
                     </div>
 
-                    {/* Tab Close: Permissions */}
-                    <div className="pt-4 border-t border-black/10 dark:border-white/10">
+                    {/* Pinned Bottom Footer: Close Permissions */}
+                    <div className={cn(
+                      "shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-t",
+                      isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
+                    )}>
                       <button
                         onClick={() => setIsSettingsOpen(false)}
                         className={cn(
-                          "w-full py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
                           isCyber 
                             ? "border border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10" 
                             : isBrutal
@@ -4170,26 +4371,32 @@ const Translator = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="space-y-6 min-w-0 w-full"
+                    className="flex-1 min-h-0 flex flex-col overflow-hidden min-w-0 w-full"
                   >
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between gap-2 pb-2 border-b border-black/5 dark:border-white/5">
-                        <div className="flex items-center gap-2">
-                          <Download className={cn("w-4 h-4", isCyber ? "text-[#00f2ff]" : "text-emerald-500")} />
-                          <h4 className={cn(
-                            "text-sm font-bold uppercase tracking-widest",
-                            isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-white" : "text-gray-900"
-                          )}>
-                            {tSettings.appUpdatesTitle}
-                          </h4>
-                        </div>
-                        <span className={cn(
-                          "text-xs font-mono font-bold tabular-nums",
-                          currentTheme.isDark ? "text-emerald-400" : "text-emerald-700"
+                    {/* Pinned Top Header: App Updates & Version */}
+                    <div className={cn(
+                      "shrink-0 px-4 sm:px-6 pt-3 pb-3 border-b flex items-center justify-between gap-2 min-w-0",
+                      isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
+                    )}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Download className={cn("w-4 h-4 shrink-0", isCyber ? "text-[#00f2ff]" : "text-emerald-500")} />
+                        <h4 className={cn(
+                          "text-sm font-bold uppercase tracking-widest truncate",
+                          isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-white" : "text-gray-900"
                         )}>
-                          v{APP_VERSION}
-                        </span>
+                          {tSettings.appUpdatesTitle}
+                        </h4>
                       </div>
+                      <span className={cn(
+                        "text-xs font-mono font-bold tabular-nums shrink-0",
+                        currentTheme.isDark ? "text-emerald-400" : "text-emerald-700"
+                      )}>
+                        v{APP_VERSION}
+                      </span>
+                    </div>
+
+                    {/* Scrollable Middle: Update Status & Action */}
+                    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain px-4 sm:px-6 py-4 space-y-4 min-w-0 w-full scrollbar-thin scrollbar-thumb-white/10">
 
                       <div className={cn(
                         "p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 min-w-0 w-full",
@@ -4277,11 +4484,15 @@ const Translator = () => {
                       </p>
                     </div>
 
-                    <div className="pt-4 border-t border-black/10 dark:border-white/10">
+                    {/* Pinned Bottom Footer: Close Updates */}
+                    <div className={cn(
+                      "shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-t",
+                      isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
+                    )}>
                       <button
                         onClick={() => setIsSettingsOpen(false)}
                         className={cn(
-                          "w-full py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
                           isCyber 
                             ? "border border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10" 
                             : isBrutal
@@ -4301,26 +4512,32 @@ const Translator = () => {
                   <motion.div
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="space-y-6 min-w-0 w-full"
+                    className="flex-1 min-h-0 flex flex-col overflow-hidden min-w-0 w-full"
                   >
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between gap-2 pb-2 border-b border-black/5 dark:border-white/5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Info className={cn("w-4 h-4 shrink-0", isCyber ? "text-[#00f2ff]" : "text-emerald-500")} />
-                          <h4 className={cn(
-                            "text-sm font-bold uppercase tracking-widest truncate",
-                            isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-white" : "text-gray-900"
-                          )}>
-                            {tSettings.aboutTitle}
-                          </h4>
-                        </div>
-                        <span className={cn(
-                          "text-xs font-mono font-bold tabular-nums shrink-0",
-                          currentTheme.isDark ? "text-emerald-400" : "text-emerald-700"
+                    {/* Pinned Top Header: About & Developer */}
+                    <div className={cn(
+                      "shrink-0 px-4 sm:px-6 pt-3 pb-3 border-b flex items-center justify-between gap-2 min-w-0",
+                      isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
+                    )}>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Info className={cn("w-4 h-4 shrink-0", isCyber ? "text-[#00f2ff]" : "text-emerald-500")} />
+                        <h4 className={cn(
+                          "text-sm font-bold uppercase tracking-widest truncate",
+                          isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-white" : "text-gray-900"
                         )}>
-                          v{APP_VERSION}
-                        </span>
+                          {tSettings.aboutTitle}
+                        </h4>
                       </div>
+                      <span className={cn(
+                        "text-xs font-mono font-bold tabular-nums shrink-0",
+                        currentTheme.isDark ? "text-emerald-400" : "text-emerald-700"
+                      )}>
+                        v{APP_VERSION}
+                      </span>
+                    </div>
+
+                    {/* Scrollable Middle: Copyright & Developer Contacts */}
+                    <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-y-contain px-4 sm:px-6 py-4 space-y-4 min-w-0 w-full scrollbar-thin scrollbar-thumb-white/10">
 
                       {/* App Copyright & Identity Summary */}
                       <div className={cn(
@@ -4476,11 +4693,15 @@ const Translator = () => {
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t border-black/10 dark:border-white/10">
+                    {/* Pinned Bottom Footer: Close About */}
+                    <div className={cn(
+                      "shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-t",
+                      isCyber ? "border-[#00f2ff]/20" : currentTheme.isDark ? "border-white/10" : "border-black/10"
+                    )}>
                       <button
                         onClick={() => setIsSettingsOpen(false)}
                         className={cn(
-                          "w-full py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
+                          "w-full min-h-[44px] py-3 rounded-xl font-bold uppercase tracking-widest transition-all duration-300 border text-xs sm:text-sm",
                           isCyber 
                             ? "border border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10" 
                             : isBrutal
@@ -4496,7 +4717,6 @@ const Translator = () => {
                   </motion.div>
                 )}
               </div>
-            </div>
             </motion.div>
           </div>
         )}
