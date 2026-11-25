@@ -1587,7 +1587,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onStop() {
+    public void onStop() {
         super.onStop();
         if (!isChangingConfigurations()) {
             FloatingOverlayService.handleAppBackgrounded(this);
@@ -1595,7 +1595,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         FloatingOverlayService.handleAppForegrounded(this);
     }
