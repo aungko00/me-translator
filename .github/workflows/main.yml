@@ -143,12 +143,42 @@ jobs:
 
       - name: Publish GitHub Release with APK
         if: steps.meta.outputs.should_release == 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          repository: ${{ vars.RELEASE_REPO || github.repository }}
-          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
-          tag_name: ${{ steps.meta.outputs.tag }}
-          name: "ME Translator ${{ steps.meta.outputs.tag }}"
-          body: ${{ steps.meta.outputs.changelog }}
-          files: ME-Translator-${{ steps.meta.outputs.tag }}.apk
-          make_latest: true
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          TARGET_REPO: ${{ vars.RELEASE_REPO || github.repository }}
+          TAG_NAME: ${{ steps.meta.outputs.tag }}
+          APK_FILE: ME-Translator-${{ steps.meta.outputs.tag }}.apk
+          CHANGELOG: ${{ steps.meta.outputs.changelog }}
+        run: |
+          NOTES_FILE="${RUNNER_TEMP}/release_notes.txt"
+          printf '%s\n' "${CHANGELOG}" > "${NOTES_FILE}"
+
+          for attempt in 1 2 3 4 5; do
+            echo "Publishing release ${TAG_NAME} to ${TARGET_REPO} (attempt ${attempt}/5)..."
+            if gh release view "${TAG_NAME}" --repo "${TARGET_REPO}" >/dev/null 2>&1; then
+              if gh release upload "${TAG_NAME}" "${APK_FILE}" --repo "${TARGET_REPO}" --clobber && \
+                 gh release edit "${TAG_NAME}" --repo "${TARGET_REPO}" --title "ME Translator ${TAG_NAME}" --notes-file "${NOTES_FILE}" --latest; then
+                echo "Updated existing release ${TAG_NAME} successfully."
+                exit 0
+              fi
+            else
+              if gh release create "${TAG_NAME}" "${APK_FILE}" \
+                --repo "${TARGET_REPO}" \
+                --target "${GITHUB_SHA}" \
+                --title "ME Translator ${TAG_NAME}" \
+                --notes-file "${NOTES_FILE}" \
+                --latest; then
+                echo "Created release ${TAG_NAME} successfully."
+                exit 0
+              fi
+            fi
+
+            if [ "${attempt}" -lt 5 ]; then
+              SLEEP_SEC=$((attempt * 5))
+              echo "GitHub Release API returned an error; retrying in ${SLEEP_SEC}s..."
+              sleep "${SLEEP_SEC}"
+            fi
+          done
+
+          echo "Failed to publish GitHub release after 5 attempts."
+          exit 1
