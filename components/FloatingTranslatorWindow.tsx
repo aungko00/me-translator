@@ -19,6 +19,9 @@ import {
   AlertTriangle,
   Sparkles,
   Zap,
+  Layers,
+  PictureInPicture2,
+  Shield,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import ReactMarkdown from 'react-markdown'
@@ -76,6 +79,98 @@ interface FloatingTranslatorWindowProps {
   groqApiKey: string
   onTranslationSuccess: (meta: { sourceLang: string; targetLang: string }) => void
   onOpenApiSettings: () => void
+  overlayPermissionGranted?: boolean
+  autoFloatOnLeave?: boolean
+  onToggleAutoFloat?: (next: boolean) => void
+  onRequestOverlayPermission?: () => void
+  onLaunchNativeOverlay?: () => void
+}
+
+export function getThemeOverlayPalette(
+  theme: 'default' | 'cyberpunk' | 'soft-minimal' | 'light' | 'dark' | 'midnight' | 'glass-modern' | 'brutalist'
+) {
+  switch (theme) {
+    case 'cyberpunk':
+      return {
+        themeBg: '#050505',
+        themeCardBg: '#111418',
+        themeText: '#00f2ff',
+        themeMuted: '#67e8f9',
+        themeAccent: '#00f2ff',
+        themeAccentText: '#000000',
+        themeBorder: '#5500f2ff',
+      }
+    case 'brutalist':
+      return {
+        themeBg: '#f8f8f5',
+        themeCardBg: '#ffffff',
+        themeText: '#000000',
+        themeMuted: '#4b5563',
+        themeAccent: '#ff3e00',
+        themeAccentText: '#ffffff',
+        themeBorder: '#000000',
+      }
+    case 'soft-minimal':
+      return {
+        themeBg: '#fafaf7',
+        themeCardBg: '#ffffff',
+        themeText: '#2c2c2c',
+        themeMuted: '#6b7280',
+        themeAccent: '#5a5a40',
+        themeAccentText: '#ffffff',
+        themeBorder: '#d8d8cc',
+      }
+    case 'light':
+      return {
+        themeBg: '#ffffff',
+        themeCardBg: '#f3f4f6',
+        themeText: '#111827',
+        themeMuted: '#6b7280',
+        themeAccent: '#2563eb',
+        themeAccentText: '#ffffff',
+        themeBorder: '#d1d5db',
+      }
+    case 'dark':
+      return {
+        themeBg: '#0a0a0a',
+        themeCardBg: '#171717',
+        themeText: '#ffffff',
+        themeMuted: '#a1a1aa',
+        themeAccent: '#ffffff',
+        themeAccentText: '#000000',
+        themeBorder: '#33ffffff',
+      }
+    case 'midnight':
+      return {
+        themeBg: '#1a1c1e',
+        themeCardBg: '#2b2d31',
+        themeText: '#e2e2e2',
+        themeMuted: '#9ca3af',
+        themeAccent: '#5865f2',
+        themeAccentText: '#ffffff',
+        themeBorder: '#33ffffff',
+      }
+    case 'glass-modern':
+      return {
+        themeBg: '#1b1d24',
+        themeCardBg: '#282b36',
+        themeText: '#ffffff',
+        themeMuted: '#cbd5e1',
+        themeAccent: '#6366f1',
+        themeAccentText: '#ffffff',
+        themeBorder: '#44ffffff',
+      }
+    default:
+      return {
+        themeBg: '#212121',
+        themeCardBg: '#2b2b2b',
+        themeText: '#ffffff',
+        themeMuted: '#a1a1aa',
+        themeAccent: '#10b981',
+        themeAccentText: '#ffffff',
+        themeBorder: '#33ffffff',
+      }
+  }
 }
 
 const COPY_MAP = {
@@ -103,6 +198,15 @@ const COPY_MAP = {
     pasteEmpty: 'Clipboard is empty.',
     micDenied: 'Microphone permission was denied.',
     micUnsupported: 'Speech input is not supported in this browser.',
+    floatOverApps: 'Float Over Apps',
+    popOutPip: 'Pop Out Window',
+    bgAutoOn: 'Background Float: On',
+    bgAutoOff: 'Background Float: Off',
+    overlayNeedPerm: 'Allow "Display over other apps" so Quick Translate keeps floating when you exit ME Translator.',
+    grantOverlayPerm: 'Allow Display Over Apps',
+    launchOverlayNow: 'Open Floating Bubble',
+    overlayStartedNotice: 'Floating bubble launched! You can now switch to any app.',
+    pipError: 'Could not open Picture-in-Picture window in this browser.',
   },
   my: {
     title: 'အမြန်ဘာသာပြန်',
@@ -128,6 +232,15 @@ const COPY_MAP = {
     pasteEmpty: 'Clipboard ထဲတွင် စာသား မရှိသေးပါ။',
     micDenied: 'မိုက်ခရိုဖုန်း အသုံးပြုခွင့် ပိတ်ထားပါသည်။',
     micUnsupported: 'ဤစက်တွင် အသံဖြင့်စာရိုက်စနစ် အလုပ်မလုပ်ပါ။',
+    floatOverApps: 'တခြားအက်ပ်ပေါ် ဖွင့်မည်',
+    popOutPip: 'အပြင်ထုတ် ဖွင့်မည်',
+    bgAutoOn: 'နောက်ခံ Float: ဖွင့်ထားသည်',
+    bgAutoOff: 'နောက်ခံ Float: ပိတ်ထားသည်',
+    overlayNeedPerm: 'အက်ပ်ထဲမှ ထွက်လိုက်သည့်အခါတွင်လည်း ဆက်လက်ဘာသာပြန်နိုင်ရန် "Display over other apps" ခွင့်ပြုချက် ဖွင့်ပေးပါ။',
+    grantOverlayPerm: 'Display Over Apps ခွင့်ပြုမည်',
+    launchOverlayNow: 'Floating Bubble ဖွင့်မည်',
+    overlayStartedNotice: 'Floating Bubble ဖွင့်ပြီးပါပြီ — တခြားအက်ပ်များပေါ်သို့ ပြောင်း၍ ဘာသာပြန်နိုင်ပါပြီ။',
+    pipError: 'ဤ Browser တွင် Picture-in-Picture ဝင်းဒိုး ဖွင့်၍မရပါ။',
   },
 }
 
@@ -151,6 +264,11 @@ export default function FloatingTranslatorWindow({
   groqApiKey,
   onTranslationSuccess,
   onOpenApiSettings,
+  overlayPermissionGranted = false,
+  autoFloatOnLeave = true,
+  onToggleAutoFloat,
+  onRequestOverlayPermission,
+  onLaunchNativeOverlay,
 }: FloatingTranslatorWindowProps) {
   const copy = COPY_MAP[appLang]
   const isCyber = theme === 'cyberpunk'
@@ -167,10 +285,22 @@ export default function FloatingTranslatorWindow({
   const [isTranslating, setIsTranslating] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [copiedOutput, setCopiedOutput] = useState(false)
+  const [supportsPip, setSupportsPip] = useState(false)
+  const [isCapacitorNative, setIsCapacitorNative] = useState(false)
 
   const langMenuRef = useRef<HTMLDivElement | null>(null)
   const recognitionRef = useRef<any>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const pipWindowRef = useRef<Window | null>(null)
+
+  useEffect(() => {
+    setIsCapacitorNative(isRunningInsideCapacitor())
+    setSupportsPip(
+      typeof window !== 'undefined' &&
+        !isRunningInsideCapacitor() &&
+        'documentPictureInPicture' in window
+    )
+  }, [])
 
   // Sync initial languages when opening from closed state
   const prevModeRef = useRef<FloatingWindowMode>(mode)
@@ -330,6 +460,146 @@ export default function FloatingTranslatorWindow({
     }
   }
 
+  const translateTextWithConfig = useCallback(
+    async (
+      rawText: string,
+      src: string,
+      tgt: string
+    ): Promise<{ text?: string; error?: string; status?: number }> => {
+      const textToTranslate = rawText.trim()
+      if (!textToTranslate) return { error: '' }
+
+      const activeKey = aiProvider === 'groq' ? groqApiKey : geminiApiKey
+      const activeModel = aiProvider === 'groq' ? groqModel : geminiModel
+      const MAX_RETRIES = 2
+      let retryCount = 0
+
+      const translateDirect = async (): Promise<{ text?: string; error?: string; status?: number }> => {
+        const trimmedKey = activeKey.trim()
+        if (!trimmedKey) {
+          return {
+            error:
+              appLang === 'en'
+                ? 'Please add your Gemini or Groq API Key in Settings > API first.'
+                : 'ဘာသာပြန်နိုင်ရန် Settings > API ထဲတွင် သင်၏ API Key ကို ထည့်သွင်းပေးပါ။',
+            status: 401,
+          }
+        }
+
+        const isAutoSource = src.toLowerCase() === 'auto'
+        const myanmarRule =
+          tgt.toLowerCase() === 'myanmar'
+            ? ' Ensure the Myanmar translation uses standard, polite, natural modern Burmese writing.'
+            : ''
+        const systemPrompt = isAutoSource
+          ? `You are a master professional translator. Automatically detect the source language of the user's text and translate it accurately and naturally into ${tgt}.${myanmarRule} Output ONLY the translated text, with no introductory remarks, quotes, or explanations.`
+          : `You are a master professional translator specializing in ${src} and ${tgt}. Translate accurately, naturally, and culturally appropriately from ${src} into ${tgt}.${myanmarRule} Output ONLY the translated text, with no introductory remarks, quotes, or explanations.`
+        const userPrompt = isAutoSource
+          ? `Detect the source language and translate the following text into ${tgt}. Only provide the translation:\n\n${textToTranslate}`
+          : `Translate the following text from ${src} to ${tgt}. Only provide the translation:\n\n${textToTranslate}`
+
+        if (aiProvider === 'groq') {
+          const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${trimmedKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: activeModel || 'openai/gpt-oss-120b',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+              ],
+              temperature: 0.2,
+            }),
+          })
+          const data = await res.json().catch(() => ({}))
+          if (!res.ok) {
+            return {
+              error: data?.error?.message || `Groq API error (${res.status})`,
+              status: res.status,
+            }
+          }
+          const out = data?.choices?.[0]?.message?.content?.trim()
+          return out ? { text: out } : { error: 'Empty response from Groq', status: 502 }
+        }
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+          activeModel || 'gemini-3.1-flash-lite'
+        )}:generateContent?key=${encodeURIComponent(trimmedKey)}`
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          return {
+            error: data?.error?.message || `Gemini API error (${res.status})`,
+            status: res.status,
+          }
+        }
+        const out = data?.candidates?.[0]?.content?.parts
+          ?.map((p: any) => p?.text || '')
+          .join('')
+          .trim()
+        return out ? { text: out } : { error: 'Empty response from Gemini', status: 502 }
+      }
+
+      const executeRequest = async (): Promise<{ text?: string; error?: string; status?: number }> => {
+        try {
+          if (isRunningInsideCapacitor()) {
+            const direct = await translateDirect()
+            if (direct.status === 429 && retryCount < MAX_RETRIES) {
+              retryCount++
+              await new Promise((r) => setTimeout(r, Math.pow(2, retryCount) * 800))
+              return executeRequest()
+            }
+            return direct
+          }
+
+          const res = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: textToTranslate,
+              sourceLang: src,
+              targetLang: tgt,
+              apiKey: activeKey.trim() || undefined,
+              provider: aiProvider,
+              model: activeModel,
+            }),
+          })
+
+          if (res.status === 404) {
+            return translateDirect()
+          }
+
+          const data = await res.json().catch(() => ({}))
+          if (!res.ok) {
+            const rawMsg = String(data?.details || data?.error || data?.message || `HTTP ${res.status}`)
+            if (res.status === 429 && retryCount < MAX_RETRIES) {
+              retryCount++
+              await new Promise((r) => setTimeout(r, Math.pow(2, retryCount) * 800))
+              return executeRequest()
+            }
+            return { error: rawMsg, status: res.status }
+          }
+          return data?.text ? { text: data.text } : { error: 'Empty translation response' }
+        } catch (err: any) {
+          return { error: err?.message || 'Network connection error' }
+        }
+      }
+
+      return executeRequest()
+    },
+    [aiProvider, groqApiKey, geminiApiKey, groqModel, geminiModel, appLang]
+  )
+
   const runQuickTranslate = useCallback(async () => {
     const textToTranslate = inputText.trim()
     if (!textToTranslate || isTranslating) return
@@ -338,135 +608,8 @@ export default function FloatingTranslatorWindow({
     setErrorText(null)
     setNoticeText(null)
 
-    const activeKey = aiProvider === 'groq' ? groqApiKey : geminiApiKey
-    const activeModel = aiProvider === 'groq' ? groqModel : geminiModel
-
-    const MAX_RETRIES = 2
-    let retryCount = 0
-
-    const translateDirect = async (): Promise<{ text?: string; error?: string; status?: number }> => {
-      const trimmedKey = activeKey.trim()
-      if (!trimmedKey) {
-        return {
-          error:
-            appLang === 'en'
-              ? 'Please add your Gemini or Groq API Key in Settings > API first.'
-              : 'ဘာသာပြန်နိုင်ရန် Settings > API ထဲတွင် သင်၏ API Key ကို ထည့်သွင်းပေးပါ။',
-          status: 401,
-        }
-      }
-
-      const isAutoSource = sourceLang.toLowerCase() === 'auto'
-      const myanmarRule =
-        targetLang.toLowerCase() === 'myanmar'
-          ? ' Ensure the Myanmar translation uses standard, polite, natural modern Burmese writing.'
-          : ''
-      const systemPrompt = isAutoSource
-        ? `You are a master professional translator. Automatically detect the source language of the user's text and translate it accurately and naturally into ${targetLang}.${myanmarRule} Output ONLY the translated text, with no introductory remarks, quotes, or explanations.`
-        : `You are a master professional translator specializing in ${sourceLang} and ${targetLang}. Translate accurately, naturally, and culturally appropriately from ${sourceLang} into ${targetLang}.${myanmarRule} Output ONLY the translated text, with no introductory remarks, quotes, or explanations.`
-      const userPrompt = isAutoSource
-        ? `Detect the source language and translate the following text into ${targetLang}. Only provide the translation:\n\n${textToTranslate}`
-        : `Translate the following text from ${sourceLang} to ${targetLang}. Only provide the translation:\n\n${textToTranslate}`
-
-      if (aiProvider === 'groq') {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${trimmedKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: activeModel || 'openai/gpt-oss-120b',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userPrompt },
-            ],
-            temperature: 0.2,
-          }),
-        })
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) {
-          return {
-            error: data?.error?.message || `Groq API error (${res.status})`,
-            status: res.status,
-          }
-        }
-        const out = data?.choices?.[0]?.message?.content?.trim()
-        return out ? { text: out } : { error: 'Empty response from Groq', status: 502 }
-      }
-
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-        activeModel || 'gemini-3.1-flash-lite'
-      )}:generateContent?key=${encodeURIComponent(trimmedKey)}`
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        }),
-      })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        return {
-          error: data?.error?.message || `Gemini API error (${res.status})`,
-          status: res.status,
-        }
-      }
-      const out = data?.candidates?.[0]?.content?.parts
-        ?.map((p: any) => p?.text || '')
-        .join('')
-        .trim()
-      return out ? { text: out } : { error: 'Empty response from Gemini', status: 502 }
-    }
-
-    const executeRequest = async (): Promise<{ text?: string; error?: string; status?: number }> => {
-      try {
-        if (isRunningInsideCapacitor()) {
-          const direct = await translateDirect()
-          if (direct.status === 429 && retryCount < MAX_RETRIES) {
-            retryCount++
-            await new Promise((r) => setTimeout(r, Math.pow(2, retryCount) * 800))
-            return executeRequest()
-          }
-          return direct
-        }
-
-        const res = await fetch('/api/translate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: textToTranslate,
-            sourceLang,
-            targetLang,
-            apiKey: activeKey.trim() || undefined,
-            provider: aiProvider,
-            model: activeModel,
-          }),
-        })
-
-        if (res.status === 404) {
-          return translateDirect()
-        }
-
-        const data = await res.json().catch(() => ({}))
-        if (!res.ok) {
-          const rawMsg = String(data?.details || data?.error || data?.message || `HTTP ${res.status}`)
-          if (res.status === 429 && retryCount < MAX_RETRIES) {
-            retryCount++
-            await new Promise((r) => setTimeout(r, Math.pow(2, retryCount) * 800))
-            return executeRequest()
-          }
-          return { error: rawMsg, status: res.status }
-        }
-        return data?.text ? { text: data.text } : { error: 'Empty translation response' }
-      } catch (err: any) {
-        return { error: err?.message || 'Network connection error' }
-      }
-    }
-
     try {
-      const res = await executeRequest()
+      const res = await translateTextWithConfig(textToTranslate, sourceLang, targetLang)
       if (res.error) {
         setErrorText(res.error)
       } else if (res.text) {
@@ -476,18 +619,188 @@ export default function FloatingTranslatorWindow({
     } finally {
       setIsTranslating(false)
     }
+  }, [inputText, isTranslating, translateTextWithConfig, sourceLang, targetLang, onTranslationSuccess])
+
+  const handleOpenDesktopPip = useCallback(async () => {
+    try {
+      const pipApi = (window as any).documentPictureInPicture
+      if (!pipApi?.requestWindow) {
+        setNoticeText(copy.pipError)
+        return
+      }
+      if (pipWindowRef.current && !pipWindowRef.current.closed) {
+        pipWindowRef.current.focus()
+        return
+      }
+
+      const pipWin: Window = await pipApi.requestWindow({ width: 400, height: 520 })
+      pipWindowRef.current = pipWin
+
+      const doc = pipWin.document
+      const pal = getThemeOverlayPalette(theme)
+      doc.title = copy.title
+
+      const styleEl = doc.createElement('style')
+      styleEl.textContent = `
+        * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        html, body { margin: 0; padding: 0; background: ${pal.themeBg}; color: ${pal.themeText}; height: 100%; }
+        .wrap { display: flex; flex-direction: column; height: 100%; padding: 12px; gap: 10px; }
+        .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid ${pal.themeBorder}; }
+        .title { font-size: 13px; font-weight: 700; }
+        .btn { background: ${pal.themeCardBg}; color: ${pal.themeText}; border: 1px solid ${pal.themeBorder}; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600; cursor: pointer; min-height: 36px; }
+        .primary { background: ${pal.themeAccent}; color: ${pal.themeAccentText}; border-color: ${pal.themeAccent}; width: 100%; min-height: 40px; font-weight: 700; }
+        .lang-row { display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center; }
+        select { background: ${pal.themeCardBg}; color: ${pal.themeText}; border: 1px solid ${pal.themeBorder}; border-radius: 8px; padding: 8px; font-size: 12px; font-weight: 600; min-height: 38px; width: 100%; }
+        textarea { width: 100%; min-height: 92px; resize: vertical; background: ${pal.themeCardBg}; color: ${pal.themeText}; border: 1px solid ${pal.themeBorder}; border-radius: 10px; padding: 10px; font-size: 13px; outline: none; }
+        .actions { display: flex; gap: 6px; }
+        .result { flex: 1; overflow-y: auto; background: ${pal.themeCardBg}; border: 1px solid ${pal.themeBorder}; border-radius: 10px; padding: 10px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; user-select: text; }
+        .err { color: #f87171; font-size: 12px; }
+      `
+      doc.head.appendChild(styleEl)
+
+      const wrap = doc.createElement('div')
+      wrap.className = 'wrap'
+
+      const topBar = doc.createElement('div')
+      topBar.className = 'top'
+      const titleSpan = doc.createElement('span')
+      titleSpan.className = 'title'
+      titleSpan.textContent = `${copy.title} · ${aiProvider === 'groq' ? 'Groq' : 'Gemini'}`
+      const backBtn = doc.createElement('button')
+      backBtn.className = 'btn'
+      backBtn.type = 'button'
+      backBtn.textContent = copy.restore
+      backBtn.onclick = () => {
+        pipWin.close()
+        window.focus()
+        onChangeMode('open')
+      }
+      topBar.append(titleSpan, backBtn)
+
+      const langRow = doc.createElement('div')
+      langRow.className = 'lang-row'
+
+      const srcSelect = doc.createElement('select')
+      languages.forEach((opt) => {
+        const o = doc.createElement('option')
+        o.value = opt.id
+        o.textContent = appLang === 'en' ? opt.labelEn : opt.labelMy
+        if (opt.id === sourceLang) o.selected = true
+        srcSelect.appendChild(o)
+      })
+
+      const tgtSelect = doc.createElement('select')
+      targetLanguages.forEach((opt) => {
+        const o = doc.createElement('option')
+        o.value = opt.id
+        o.textContent = appLang === 'en' ? opt.labelEn : opt.labelMy
+        if (opt.id === targetLang) o.selected = true
+        tgtSelect.appendChild(o)
+      })
+
+      const swapBtn = doc.createElement('button')
+      swapBtn.className = 'btn'
+      swapBtn.type = 'button'
+      swapBtn.textContent = '⇄'
+      swapBtn.onclick = () => {
+        const prevSrc = srcSelect.value
+        const prevTgt = tgtSelect.value
+        srcSelect.value = prevTgt
+        tgtSelect.value = prevSrc === 'Auto' ? (prevTgt === 'Myanmar' ? 'English' : 'Myanmar') : prevSrc
+        setSourceLang(srcSelect.value)
+        setTargetLang(tgtSelect.value)
+      }
+      srcSelect.onchange = () => setSourceLang(srcSelect.value)
+      tgtSelect.onchange = () => setTargetLang(tgtSelect.value)
+      langRow.append(srcSelect, swapBtn, tgtSelect)
+
+      const textArea = doc.createElement('textarea')
+      textArea.placeholder = copy.placeholder
+      textArea.value = inputText
+
+      const rowActions = doc.createElement('div')
+      rowActions.className = 'actions'
+      const pasteBtn = doc.createElement('button')
+      pasteBtn.className = 'btn'
+      pasteBtn.type = 'button'
+      pasteBtn.textContent = copy.paste
+      pasteBtn.onclick = async () => {
+        try {
+          const clip = await readClipboardText()
+          if (clip && clip.trim()) {
+            textArea.value = textArea.value ? `${textArea.value}\n${clip}` : clip
+            setInputText(textArea.value)
+          }
+        } catch {
+          // ignore
+        }
+      }
+      const copyBtn = doc.createElement('button')
+      copyBtn.className = 'btn'
+      copyBtn.type = 'button'
+      copyBtn.textContent = copy.copy
+
+      const translateBtn = doc.createElement('button')
+      translateBtn.className = 'btn primary'
+      translateBtn.type = 'button'
+      translateBtn.textContent = copy.translateBtn
+
+      const resultDiv = doc.createElement('div')
+      resultDiv.className = 'result'
+      resultDiv.textContent = outputText || ''
+
+      copyBtn.onclick = () => {
+        const out = resultDiv.textContent || ''
+        if (!out) return
+        pipWin.navigator.clipboard?.writeText(out).catch(() => navigator.clipboard?.writeText(out).catch(() => {}))
+        copyBtn.textContent = copy.copied
+        setTimeout(() => {
+          copyBtn.textContent = copy.copy
+        }, 1500)
+      }
+
+      translateBtn.onclick = async () => {
+        const val = textArea.value.trim()
+        if (!val) return
+        setInputText(textArea.value)
+        translateBtn.disabled = true
+        translateBtn.textContent = copy.translatingBtn
+        resultDiv.className = 'result'
+        const res = await translateTextWithConfig(val, srcSelect.value, tgtSelect.value)
+        translateBtn.disabled = false
+        translateBtn.textContent = copy.translateBtn
+        if (res.error) {
+          resultDiv.className = 'result err'
+          resultDiv.textContent = res.error
+        } else if (res.text) {
+          resultDiv.textContent = res.text
+          setOutputText(res.text)
+          onTranslationSuccess({ sourceLang: srcSelect.value, targetLang: tgtSelect.value })
+        }
+      }
+
+      rowActions.append(pasteBtn, copyBtn)
+      wrap.append(topBar, langRow, textArea, rowActions, translateBtn, resultDiv)
+      doc.body.appendChild(wrap)
+
+      onChangeMode('minimized')
+    } catch {
+      setNoticeText(copy.pipError)
+    }
   }, [
-    inputText,
-    isTranslating,
+    copy,
+    theme,
     aiProvider,
-    groqApiKey,
-    geminiApiKey,
-    groqModel,
-    geminiModel,
+    languages,
+    targetLanguages,
     appLang,
     sourceLang,
     targetLang,
+    inputText,
+    outputText,
+    translateTextWithConfig,
     onTranslationSuccess,
+    onChangeMode,
   ])
 
   const windowShellClasses = isCyber
@@ -726,8 +1039,64 @@ export default function FloatingTranslatorWindow({
                   </div>
                 </div>
 
-                {/* Computer-style Minimize, Maximize/Restore, Close Icons */}
+                {/* Computer-style Minimize, Maximize/Restore, Close + Background Float Icons */}
                 <div className="flex items-center gap-1 shrink-0">
+                  {isCapacitorNative && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!overlayPermissionGranted) {
+                          onRequestOverlayPermission?.()
+                        } else {
+                          setNoticeText(copy.overlayStartedNotice)
+                          onLaunchNativeOverlay?.()
+                        }
+                      }}
+                      title={copy.floatOverApps}
+                      aria-label={copy.floatOverApps}
+                      className={cn(
+                        'min-w-[38px] min-h-[38px] px-2 rounded-lg flex items-center justify-center gap-1.5 text-[11px] font-bold transition-all duration-200 border',
+                        themeHover.surface,
+                        overlayPermissionGranted
+                          ? isCyber
+                            ? 'border-[#00f2ff]/45 text-[#00f2ff] bg-[#00f2ff]/10'
+                            : themeConfig.isDark
+                              ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+                              : 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                          : isCyber
+                            ? 'border-amber-400/50 text-amber-300 bg-amber-500/10'
+                            : themeConfig.isDark
+                              ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
+                              : 'border-amber-300 bg-amber-50 text-amber-800'
+                      )}
+                    >
+                      <Layers className="w-3.5 h-3.5 shrink-0" />
+                      <span className="hidden sm:inline whitespace-nowrap">{copy.floatOverApps}</span>
+                    </button>
+                  )}
+
+                  {supportsPip && (
+                    <button
+                      type="button"
+                      onClick={handleOpenDesktopPip}
+                      title={copy.popOutPip}
+                      aria-label={copy.popOutPip}
+                      className={cn(
+                        'min-w-[38px] min-h-[38px] rounded-lg flex items-center justify-center transition-all duration-200 border border-transparent',
+                        themeHover.icon,
+                        isCyber
+                          ? 'text-[#00f2ff] hover:bg-[#00f2ff]/15 hover:border-[#00f2ff]/40'
+                          : isBrutal
+                            ? 'bg-white text-black border-black hover:bg-gray-100 rounded-none'
+                            : themeConfig.isDark
+                              ? 'text-gray-300 hover:bg-white/10 hover:text-white'
+                              : 'text-gray-700 hover:bg-black/5 hover:text-black'
+                      )}
+                    >
+                      <PictureInPicture2 className="w-4 h-4" />
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => onChangeMode('minimized')}
@@ -798,6 +1167,72 @@ export default function FloatingTranslatorWindow({
 
               {/* Scrollable Window Body */}
               <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3.5 sm:p-5 space-y-3.5 scrollbar-thin scrollbar-thumb-white/10">
+                {/* Android Background Floating Bar */}
+                {isCapacitorNative && (
+                  <div
+                    className={cn(
+                      'rounded-xl border px-3 py-2.5 flex flex-col gap-2 text-xs',
+                      cardSurfaceClasses
+                    )}
+                  >
+                    {!overlayPermissionGranted ? (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-start gap-2 min-w-0">
+                          <Shield className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                          <span className="leading-relaxed opacity-90">{copy.overlayNeedPerm}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onRequestOverlayPermission?.()}
+                          className={cn(
+                            'min-h-[38px] px-3 py-1.5 rounded-lg font-bold text-xs shrink-0 transition-all',
+                            themeHover.primary,
+                            ctaButtonClasses
+                          )}
+                        >
+                          {copy.grantOverlayPerm}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onToggleAutoFloat?.(!autoFloatOnLeave)}
+                          className={cn(
+                            'min-h-[36px] px-2.5 py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition-all',
+                            themeHover.surface,
+                            autoFloatOnLeave
+                              ? isCyber
+                                ? 'border-[#00f2ff]/50 bg-[#00f2ff]/15 text-[#00f2ff]'
+                                : themeConfig.isDark
+                                  ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+                                  : 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                              : themeConfig.isDark
+                                ? 'border-white/15 bg-white/5 text-gray-300'
+                                : 'border-gray-300 bg-gray-100 text-gray-700'
+                          )}
+                        >
+                          <Layers className="w-3.5 h-3.5 shrink-0" />
+                          <span>{autoFloatOnLeave ? copy.bgAutoOn : copy.bgAutoOff}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNoticeText(copy.overlayStartedNotice)
+                            onLaunchNativeOverlay?.()
+                          }}
+                          className={cn(
+                            'min-h-[36px] px-3 py-1 rounded-lg text-xs font-bold shrink-0 transition-all',
+                            themeHover.primary,
+                            ctaButtonClasses
+                          )}
+                        >
+                          {copy.launchOverlayNow}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Language Pair Selector Row */}
                 <div ref={langMenuRef} className="relative">
                   <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">

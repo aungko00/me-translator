@@ -8,12 +8,43 @@ export interface DownloadProgressEvent {
   percent: number;
 }
 
+export interface FloatingOverlayConfig {
+  aiProvider: 'gemini' | 'groq';
+  geminiModel: string;
+  groqModel: string;
+  geminiApiKey: string;
+  groqApiKey: string;
+  sourceLang: string;
+  targetLang: string;
+  appLang: 'en' | 'my';
+  autoFloatOnLeave: boolean;
+  themeBg: string;
+  themeCardBg: string;
+  themeText: string;
+  themeMuted: string;
+  themeAccent: string;
+  themeAccentText: string;
+  themeBorder: string;
+}
+
 export interface AppInstallerPlugin {
   canRequestPackageInstalls(): Promise<{ granted: boolean }>;
   openInstallPermissionSettings(): Promise<void>;
   hasAudioPermission(): Promise<{ state: 'granted' | 'denied' | 'prompt' }>;
   requestAudioPermission(): Promise<{ state: 'granted' | 'denied' | 'prompt' }>;
   openAppSettings(): Promise<void>;
+  canDrawOverlays(): Promise<{ granted: boolean }>;
+  openOverlayPermissionSettings(): Promise<void>;
+  syncFloatingConfig(config: FloatingOverlayConfig): Promise<void>;
+  startFloatingOverlay(options?: {
+    expanded?: boolean;
+  }): Promise<{ status: 'started' | 'permission_needed' }>;
+  stopFloatingOverlay(): Promise<void>;
+  getFloatingOverlayState(): Promise<{
+    running: boolean;
+    granted: boolean;
+    autoFloatOnLeave: boolean;
+  }>;
   downloadAndInstallApk(options: {
     url: string;
     filename: string;

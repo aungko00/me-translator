@@ -1,8 +1,23 @@
-export const APP_VERSION = '1.1.19';
-export const ANDROID_VERSION_CODE = 129;
+export const APP_VERSION = '1.1.20';
+export const ANDROID_VERSION_CODE = 130;
 export const DEFAULT_GITHUB_REPO = 'aungko00/me-translator';
 
 export const RELEASE_HISTORY = [
+  {
+    version: '1.1.20',
+    titleEn: 'Floating Quick Translator Background & System Overlay Fix',
+    titleMy: 'အမြန်ဘာသာပြန်ဝင်းဒိုး နောက်ခံနှင့် တခြားအက်ပ်များအပေါ်မှ အသုံးပြုနိုင်မှု ပြင်ဆင်ချက်',
+    notesEn: [
+      'Floating Quick Translator Fix: Fixed an issue where Floating Quick Translator stopped when leaving the app. On Android, it now runs as a system-wide draggable floating bubble and translator window over other apps once "Display over other apps" permission is enabled.',
+      'Quick Controls Outside App: Translate directly over messaging or social apps with language switching, Paste, Copy, Minimize to bubble, Maximize back to app, and Close controls.',
+      'Background Mode & Desktop Pop-Out: Added Display Over Other Apps permission + Auto-Float settings in Permissions, plus always-on-top Picture-in-Picture support on desktop browsers.',
+    ],
+    notesMy: [
+      'Floating Quick Translator ပြင်ဆင်မှု - အက်ပ်ထဲမှ ထွက်လိုက်သည့်အခါ အမြန်ဘာသာပြန်စနစ် ရပ်သွားသည့်ပြဿနာကို ပြင်ဆင်ပေးထားပါသည်။ Android တွင် "Display over other apps" ခွင့်ပြုချက်ဖွင့်ထားပါက တခြားအက်ပ်များအပေါ်မှ ဆက်လက်ဖွင့်ပြီး ဘာသာပြန်နိုင်ပါပြီ။',
+      'အက်ပ်ပြင်ပ အမြန်လုပ်ဆောင်ချက်များ - တခြားအက်ပ်များပေါ်တွင်ပင် ဘာသာစကားရွေးခြင်း၊ Paste၊ Copy၊ ချုံ့ခြင်း (Bubble)၊ အက်ပ်အပြည့်ပြန်ဖွင့်ခြင်းနှင့် ပိတ်ခြင်းတို့ကို တိုက်ရိုက်အသုံးပြုနိုင်ပါပြီ။',
+      'နောက်ခံချိန်ညှိမှုနှင့် Desktop Pop-Out - Settings > Permissions ထဲတွင် Display Over Other Apps ခွင့်ပြုချက်နှင့် Auto-Float ခလုတ် ထည့်သွင်းထားပြီး Desktop Browser များတွင်လည်း Picture-in-Picture ဖြင့် ထုတ်သုံးနိုင်ပါပြီ။',
+    ],
+  },
   {
     version: '1.1.19',
     titleEn: 'Floating Quick Translator & Persistent Changelog',
@@ -64,7 +79,7 @@ export const RELEASE_HISTORY = [
 ];
 
 export const RELEASE_WHATS_NEW =
-  '• Floating Quick Translator: Added a theme-matched top-right button to open a resizable Quick Translate window with Minimize, Maximize, and Close controls.\n' +
-  "• Persistent Release History: Version What's New notes now stay preserved inside App Updates & Version after every update.\n\n" +
-  '• အမြန်ဘာသာပြန် မျက်နှာပြင်အသစ် - ညာဘက်အပေါ်ထောင့်မှ ခလုတ်ဖြင့် ချုံ့ခြင်း၊ ချဲ့ခြင်းနှင့် ပိတ်ခြင်းတို့ ပြုလုပ်နိုင်သော အမြန်ဘာသာပြန်ဝင်းဒိုးကို အသုံးပြုနိုင်ပါပြီ။\n' +
-  '• ဗားရှင်းမှတ်တမ်း ထိန်းသိမ်းမှု - အပ်ဒိတ်တင်ပြီးတိုင်း ဗားရှင်းတစ်ခုချင်းစီ၏ အသစ်ပါဝင်ချက်များကို အက်ပ်အပ်ဒိတ်စာမျက်နှာတွင် အမြဲတမ်းပြန်လည်ကြည့်ရှုနိုင်ပါပြီ။';
+  '• Floating Quick Translator Fix: Fixed Floating Quick Translator stopping when exiting the app — Android now supports a system-wide background floating bubble & translator window over other apps (with Display Over Other Apps permission).\n' +
+  '• Outside-App Controls & Desktop Pop-Out: Translate over other apps with language switching, Paste, Copy, Minimize, Maximize, and Close, plus Desktop Browser Picture-in-Picture mode.\n\n' +
+  '• Floating Quick Translator ပြင်ဆင်မှု - အက်ပ်ထဲမှ ထွက်လိုက်လျှင် အမြန်ဘာသာပြန်ဝင်းဒိုး ရပ်သွားသည့်ပြဿနာကို ပြင်ဆင်ထားပါသည်။ Android တွင် "Display over other apps" ခွင့်ပြုချက်ဖြင့် တခြားအက်ပ်များအပေါ်မှ နောက်ခံတွင် ဆက်လက်ဖွင့်ပြီး ဘာသာပြန်နိုင်ပါပြီ။\n' +
+  '• အက်ပ်ပြင်ပ ထိန်းချုပ်မှုနှင့် Desktop Pop-Out - တခြားအက်ပ်များပေါ်မှ ဘာသာစကားပြောင်းခြင်း၊ Paste၊ Copy၊ ချုံ့/ချဲ့/ပိတ်ခြင်းများနှင့် Desktop Browser Picture-in-Picture စနစ်တို့ ထည့်သွင်းထားပါသည်။';

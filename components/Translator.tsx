@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { Send, Languages, Trash2, Copy, Check, CheckCircle2, Info, Settings, X, Moon, Zap, Volume2, VolumeX, ChevronDown, Keyboard, Mic, MicOff, PlusCircle, AlertTriangle, Menu, MessageSquare, Eye, ClipboardPaste, Shield, Sparkles, User, Lock, Cpu, ExternalLink, Star, Search, History, ArrowLeftRight, RefreshCw, Download, Smartphone, WifiOff, MessageCircle, Globe, Pencil } from 'lucide-react'
+import { Send, Languages, Trash2, Copy, Check, CheckCircle2, Info, Settings, X, Moon, Zap, Volume2, VolumeX, ChevronDown, Keyboard, Mic, MicOff, PlusCircle, AlertTriangle, Menu, MessageSquare, Eye, ClipboardPaste, Shield, Sparkles, User, Lock, Cpu, ExternalLink, Star, Search, History, ArrowLeftRight, RefreshCw, Download, Smartphone, WifiOff, MessageCircle, Globe, Pencil, Layers } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import ReactMarkdown from 'react-markdown'
 import { clsx, type ClassValue } from 'clsx'
@@ -26,7 +26,7 @@ import {
   normalizeVersion,
 } from '@/lib/app-update'
 import { RELEASE_HISTORY } from '@/lib/app-config'
-import FloatingTranslatorWindow, { type FloatingWindowMode } from '@/components/FloatingTranslatorWindow'
+import FloatingTranslatorWindow, { type FloatingWindowMode, getThemeOverlayPalette } from '@/components/FloatingTranslatorWindow'
 import { trackTranslationCompleted } from '@/lib/analytics'
 
 function cn(...inputs: ClassValue[]) {
@@ -603,6 +603,13 @@ const TRANSLATIONS = {
     faqDescAndroid: 'Microphone access enables voice typing, and Clipboard Paste lets you paste keys or sentences with one tap.',
     solution1Android: '1. Tap either permission above or "Request All Permissions" to allow access.',
     solution2Android: '2. If Microphone stays blocked, tap "Open Android App Settings" → Permissions → Allow Microphone.',
+    overlayTitle: 'Display Over Other Apps',
+    autoFloatTitle: 'Keep Floating Outside App',
+    autoFloatDesc: 'Automatically show the draggable Quick Translate bubble when switching to other apps.',
+    launchOverlayBtn: 'Open Floating Bubble Now',
+    overlayNeedPermMsg: 'Please allow "Display over other apps" in Android Settings so Floating Quick Translator works outside the app.',
+    overlayReadyMsg: 'Display Over Other Apps is enabled. Leaving the app will keep Quick Translate available.',
+    solution3Android: '3. Allow "Display Over Other Apps" above so Floating Quick Translator continues working outside the app.',
     faqTitle: '💡 How to avoid repeated permission prompts in AI Studio?',
     faqDesc: 'Due to security policies in Google AI Studio preview iframes, access requests for Microphone and Clipboard may be prompted on each page reload.',
     solutionsTitle: 'Solutions:',
@@ -771,6 +778,13 @@ const TRANSLATIONS = {
     faqDescAndroid: 'အသံဖြင့် စာရိုက်ရန် မိုက်ခရိုဖုန်းခွင့်ပြုချက် လိုအပ်ပြီး API Key နှင့် စာသားများကို တစ်ချက်နှိပ် Paste လုပ်ရန် Clipboard စနစ် ပါဝင်ပါသည်။',
     solution1Android: '၁။ အပေါ်ရှိ မိုက်ခရိုဖုန်း / Clipboard ခလုတ် သို့မဟုတ် "ခွင့်ပြုချက်အားလုံး တောင်းခံမည်" ကို နှိပ်ပါ။',
     solution2Android: '၂။ ပိတ်ထားမိပါက "Android App Settings ဖွင့်မည်" ကိုနှိပ်ပြီး Permissions → Microphone ကို Allow ပေးပါ။',
+    overlayTitle: 'တခြားအက်ပ်များအပေါ် ဖွင့်ခွင့်',
+    autoFloatTitle: 'အက်ပ်ပြင်ပ နောက်ခံ Float စနစ်',
+    autoFloatDesc: 'အက်ပ်ထဲမှ ထွက်၍ တခြားအက်ပ်များ သုံးချိန်တွင် Floating ခလုတ် အလိုအလျောက် ပေါ်နေစေမည်။',
+    launchOverlayBtn: 'Floating Bubble ယခုဖွင့်မည်',
+    overlayNeedPermMsg: 'အက်ပ်ပြင်ပတွင် ဘာသာပြန်နိုင်ရန် Android Settings ထဲမှ "Display over other apps" ခွင့်ပြုချက် ဖွင့်ပေးပါ။',
+    overlayReadyMsg: 'တခြားအက်ပ်များအပေါ် ဖွင့်ခွင့် အသင့်ဖြစ်နေပါပြီ — အက်ပ်ထဲမှ ထွက်လိုက်လျှင်လည်း ဆက်လက်ဘာသာပြန်နိုင်ပါပြီ။',
+    solution3Android: '၃။ အက်ပ်ထဲမှ ထွက်ပြီး တခြားအက်ပ်များပေါ်မှ ဘာသာပြန်နိုင်ရန် အပေါ်ရှိ "တခြားအက်ပ်များအပေါ် ဖွင့်ခွင့်" ကို Allow ပေးပါ။',
     faqTitle: '💡 Permission Modal အမြဲတမ်း ပေါ်မနေအောင် ဘယ်လိုလုပ်ရမလဲ?',
     faqDesc: 'Google AI Studio Preview (iframe) ၏ လုံခြုံရေးမူဝါဒအရ page load လုပ်တိုင်း သို့မဟုတ် reload လုပ်တိုင်း Microphone နှင့် Clipboard သုံးစွဲခွင့်ကို အတည်ပြုရန် ခွင့်ပြုချက်တောင်းခံလွှာ ထပ်ကာထပ်ကာ တောင်းလေ့ရှိသည်။',
     solutionsTitle: 'ဖြေရှင်းနည်းများ:',
@@ -1131,7 +1145,98 @@ const Translator = () => {
   const [pasteAlertMsg, setPasteAlertMsg] = useState<string | null>(null)
   const [micPermission, setMicPermission] = useState<PermissionState | 'unknown'>('unknown')
   const [clipboardPermission, setClipboardPermission] = useState<PermissionState | 'unknown'>('unknown')
+  const [overlayPermission, setOverlayPermission] = useState<'granted' | 'prompt' | 'unknown'>('unknown')
+  const [autoFloatOnLeave, setAutoFloatOnLeave] = useState<boolean>(true)
   const [permissionFeedback, setPermissionFeedback] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const saved = localStorage.getItem('me_translator_auto_float_on_leave')
+      if (saved === 'false') {
+        setAutoFloatOnLeave(false)
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const syncNativeFloatingConfig = useCallback(
+    async (autoFloatOverride?: boolean) => {
+      if (!isRunningInsideCapacitor()) return
+      try {
+        const pal = getThemeOverlayPalette(theme)
+        await AppInstaller.syncFloatingConfig({
+          aiProvider,
+          geminiModel,
+          groqModel,
+          geminiApiKey,
+          groqApiKey,
+          sourceLang,
+          targetLang,
+          appLang,
+          autoFloatOnLeave: autoFloatOverride ?? autoFloatOnLeave,
+          ...pal,
+        })
+      } catch {
+        // ignore if plugin unavailable
+      }
+    },
+    [
+      theme,
+      aiProvider,
+      geminiModel,
+      groqModel,
+      geminiApiKey,
+      groqApiKey,
+      sourceLang,
+      targetLang,
+      appLang,
+      autoFloatOnLeave,
+    ]
+  )
+
+  useEffect(() => {
+    syncNativeFloatingConfig()
+  }, [syncNativeFloatingConfig])
+
+  const handleToggleAutoFloat = useCallback(
+    (next: boolean) => {
+      setAutoFloatOnLeave(next)
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('me_translator_auto_float_on_leave', String(next))
+        } catch {
+          // ignore
+        }
+      }
+      syncNativeFloatingConfig(next)
+    },
+    [syncNativeFloatingConfig]
+  )
+
+  const handleRequestOverlayPermission = useCallback(async () => {
+    if (!isRunningInsideCapacitor()) return
+    try {
+      await syncNativeFloatingConfig()
+      await AppInstaller.openOverlayPermissionSettings()
+    } catch {
+      // ignore
+    }
+  }, [syncNativeFloatingConfig])
+
+  const handleLaunchNativeOverlay = useCallback(async () => {
+    if (!isRunningInsideCapacitor()) return
+    try {
+      await syncNativeFloatingConfig()
+      const res = await AppInstaller.startFloatingOverlay({ expanded: true })
+      if (res?.status === 'permission_needed') {
+        await AppInstaller.openOverlayPermissionSettings()
+      }
+    } catch {
+      // ignore
+    }
+  }, [syncNativeFloatingConfig])
 
   const checkPermissions = useCallback(async () => {
     if (isRunningInsideCapacitor()) {
@@ -1142,7 +1247,13 @@ const Translator = () => {
           setMicPermission(audioPerm.state)
         }
       } catch {
-        // Fallback to web permissions query below
+        // ignore
+      }
+      try {
+        const overlayPerm = await AppInstaller.canDrawOverlays()
+        setOverlayPermission(overlayPerm?.granted ? 'granted' : 'prompt')
+      } catch {
+        // ignore
       }
       return
     }
@@ -1206,10 +1317,21 @@ const Translator = () => {
   useEffect(() => {
     checkPermissions()
     if (typeof window !== 'undefined') {
+      const onVisibility = () => {
+        if (document.visibilityState === 'visible') {
+          checkPermissions()
+        } else if (document.visibilityState === 'hidden') {
+          syncNativeFloatingConfig()
+        }
+      }
       window.addEventListener('focus', checkPermissions)
-      return () => window.removeEventListener('focus', checkPermissions)
+      document.addEventListener('visibilitychange', onVisibility)
+      return () => {
+        window.removeEventListener('focus', checkPermissions)
+        document.removeEventListener('visibilitychange', onVisibility)
+      }
     }
-  }, [checkPermissions])
+  }, [checkPermissions, syncNativeFloatingConfig])
 
   // Auto-dismiss micError after 8 seconds
   useEffect(() => {
@@ -2458,6 +2580,11 @@ const Translator = () => {
             setActiveSettingsTab('api')
             setIsSettingsOpen(true)
           }}
+          overlayPermissionGranted={overlayPermission === 'granted'}
+          autoFloatOnLeave={autoFloatOnLeave}
+          onToggleAutoFloat={handleToggleAutoFloat}
+          onRequestOverlayPermission={handleRequestOverlayPermission}
+          onLaunchNativeOverlay={handleLaunchNativeOverlay}
         />
 
         <main
@@ -4326,6 +4453,73 @@ const Translator = () => {
                               {clipboardPermission === 'granted' ? tSettings.micAllowed : clipboardPermission === 'denied' ? tSettings.micBlocked : tSettings.tapToAsk}
                             </span>
                           </button>
+
+                          {isRunningInsideCapacitor() && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  setPermissionFeedback(null);
+                                  await handleRequestOverlayPermission();
+                                  setPermissionFeedback(
+                                    overlayPermission === 'granted'
+                                      ? tSettings.overlayReadyMsg
+                                      : tSettings.overlayNeedPermMsg
+                                  );
+                                }}
+                                className={cn(
+                                  "w-full min-h-[44px] flex items-center justify-between gap-3 text-left rounded-lg px-2 py-1.5 border border-transparent transition-all duration-200",
+                                  themeHover.surface,
+                                  currentTheme.isDark ? "hover:bg-white/5" : "hover:bg-black/5"
+                                )}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Layers className={cn("w-4 h-4 shrink-0", isCyber ? "text-[#00f2ff]" : currentTheme.isDark ? "text-emerald-400" : "text-[#5A5A40]")} />
+                                  <span className={cn("text-sm font-bold", currentTheme.isDark ? "text-gray-200" : "text-gray-900")}>{tSettings.overlayTitle}</span>
+                                </div>
+                                <span className={cn(
+                                  "text-xs px-3 py-1.5 rounded-full font-bold uppercase border shrink-0 transition-transform active:scale-95",
+                                  overlayPermission === 'granted'
+                                    ? currentTheme.isDark ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" : "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                    : currentTheme.isDark ? "bg-amber-500/10 text-amber-400 border-amber-500/30" : "bg-amber-50 text-amber-700 border-amber-300"
+                                )}>
+                                  {overlayPermission === 'granted' ? tSettings.micAllowed : tSettings.tapToAsk}
+                                </span>
+                              </button>
+
+                              <div className={cn(
+                                "w-full min-h-[44px] flex items-center justify-between gap-3 rounded-lg px-2 py-2 border-t",
+                                currentTheme.isDark ? "border-white/10" : "border-black/10"
+                              )}>
+                                <div className="min-w-0 pr-2">
+                                  <p className={cn("text-sm font-bold", currentTheme.isDark ? "text-gray-200" : "text-gray-900")}>
+                                    {tSettings.autoFloatTitle}
+                                  </p>
+                                  <p className={cn("text-xs mt-0.5 leading-relaxed", currentTheme.isDark ? "text-gray-400" : "text-gray-600")}>
+                                    {tSettings.autoFloatDesc}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleAutoFloat(!autoFloatOnLeave)}
+                                  className={cn(
+                                    "min-w-[64px] min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-bold border shrink-0 transition-all",
+                                    autoFloatOnLeave
+                                      ? isCyber
+                                        ? "bg-[#00f2ff] text-black border-[#00f2ff]"
+                                        : currentTheme.isDark
+                                          ? "bg-emerald-600 text-white border-emerald-500"
+                                          : "bg-emerald-600 text-white border-emerald-700"
+                                      : currentTheme.isDark
+                                        ? "bg-white/5 text-gray-300 border-white/15"
+                                        : "bg-gray-100 text-gray-700 border-gray-300"
+                                  )}
+                                >
+                                  {autoFloatOnLeave ? tSettings.soundOn : tSettings.soundOff}
+                                </button>
+                              </div>
+                            </>
+                          )}
                         </div>
 
                         {/* Request All Permissions Button */}
@@ -4361,21 +4555,40 @@ const Translator = () => {
                         </button>
 
                         {isRunningInsideCapacitor() && (
-                          <button
-                            type="button"
-                            onClick={() => AppInstaller.openAppSettings()}
-                            className={cn(
-                              "w-full min-h-[44px] py-2.5 rounded-xl text-xs font-bold border transition-all duration-200",
-                              themeHover.surface,
-                              isCyber
-                                ? "border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10"
-                                : currentTheme.isDark
-                                  ? "border-white/15 bg-white/5 text-gray-200 hover:bg-white/10"
-                                  : "border-gray-300 bg-white text-gray-800 hover:bg-gray-100"
+                          <div className="flex flex-col gap-2">
+                            {overlayPermission === 'granted' && (
+                              <button
+                                type="button"
+                                onClick={handleLaunchNativeOverlay}
+                                className={cn(
+                                  "w-full min-h-[44px] py-2.5 rounded-xl text-xs font-bold border transition-all duration-200",
+                                  themeHover.surface,
+                                  isCyber
+                                    ? "border-[#00f2ff]/50 bg-[#00f2ff]/10 text-[#00f2ff]"
+                                    : currentTheme.isDark
+                                      ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20"
+                                      : "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                                )}
+                              >
+                                {tSettings.launchOverlayBtn}
+                              </button>
                             )}
-                          >
-                            {tSettings.openAppSettingsBtn}
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => AppInstaller.openAppSettings()}
+                              className={cn(
+                                "w-full min-h-[44px] py-2.5 rounded-xl text-xs font-bold border transition-all duration-200",
+                                themeHover.surface,
+                                isCyber
+                                  ? "border-[#00f2ff]/40 text-[#00f2ff] hover:bg-[#00f2ff]/10"
+                                  : currentTheme.isDark
+                                    ? "border-white/15 bg-white/5 text-gray-200 hover:bg-white/10"
+                                    : "border-gray-300 bg-white text-gray-800 hover:bg-gray-100"
+                              )}
+                            >
+                              {tSettings.openAppSettingsBtn}
+                            </button>
+                          </div>
                         )}
 
                         {permissionFeedback && (
@@ -4415,6 +4628,9 @@ const Translator = () => {
                               </p>
                               <p className={cn("pl-1", currentTheme.isDark ? "text-gray-400" : "text-gray-700")}>
                                 {tSettings.solution2Android}
+                              </p>
+                              <p className={cn("pl-1", currentTheme.isDark ? "text-gray-400" : "text-gray-700")}>
+                                {tSettings.solution3Android}
                               </p>
                             </div>
                           </>
