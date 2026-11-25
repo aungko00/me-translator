@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
   trailingSlash: isCapacitorBuild ? true : false,
   reactStrictMode: false,
   devIndicators: false,
+  allowedDevOrigins: [
+    '*.asia-east1.run.app',
+    '*.run.app',
+    'ais-dev-wwc3pj42cbvngycmanbtvf-403281914828.asia-east1.run.app',
+    'ais-pre-wwc3pj42cbvngycmanbtvf-403281914828.asia-east1.run.app',
+    '127.0.0.1',
+  ],
   experimental: {
     devtoolSegmentExplorer: false,
   },

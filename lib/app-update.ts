@@ -104,6 +104,49 @@ export function isRunningInsideCapacitor(): boolean {
   return proto === 'capacitor:' || proto === 'file:';
 }
 
+export interface CachedReleaseNote {
+  version: string;
+  releaseName: string;
+  releaseNotes: string;
+  publishedAt: string;
+  htmlUrl: string;
+}
+
+const VERSION_NOTES_STORAGE_KEY = 'me_translator_version_notes_v1';
+
+export function getCachedReleaseNotes(): CachedReleaseNote[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(VERSION_NOTES_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCachedReleaseNote(entry: CachedReleaseNote): void {
+  if (typeof window === 'undefined') return;
+  const ver = normalizeVersion(entry.version);
+  const notes = (entry.releaseNotes || '').trim();
+  if (!ver || !notes) return;
+  try {
+    const existing = getCachedReleaseNotes().filter(
+      (item) => normalizeVersion(item.version) !== ver
+    );
+    const updated: CachedReleaseNote[] = [
+      { ...entry, version: ver, releaseNotes: notes },
+      ...existing,
+    ]
+      .sort((a, b) => compareVersions(b.version, a.version))
+      .slice(0, 20);
+    localStorage.setItem(VERSION_NOTES_STORAGE_KEY, JSON.stringify(updated));
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
 export async function checkForGitHubUpdate(
   repoOverride?: string
 ): Promise<AppUpdateInfo> {
@@ -170,16 +213,30 @@ export async function checkForGitHubUpdate(
 
     const hasUpdate =
       !!latestVersion && compareVersions(latestVersion, APP_VERSION) > 0;
+    const releaseNotes = String(data?.body || '').trim();
+    const releaseName = String(data?.name || tagName || '');
+    const publishedAt = String(data?.published_at || '');
+    const htmlUrl = String(data?.html_url || base.htmlUrl);
+
+    if (latestVersion && releaseNotes) {
+      saveCachedReleaseNote({
+        version: latestVersion,
+        releaseName,
+        releaseNotes,
+        publishedAt,
+        htmlUrl,
+      });
+    }
 
     return {
       hasUpdate,
       currentVersion: normalizeVersion(APP_VERSION),
       latestVersion: latestVersion || normalizeVersion(APP_VERSION),
       tagName: tagName || `v${latestVersion}`,
-      releaseName: String(data?.name || tagName || ''),
-      releaseNotes: String(data?.body || '').trim(),
-      publishedAt: String(data?.published_at || ''),
-      htmlUrl: String(data?.html_url || base.htmlUrl),
+      releaseName,
+      releaseNotes,
+      publishedAt,
+      htmlUrl,
       apkAsset,
       repo,
     };

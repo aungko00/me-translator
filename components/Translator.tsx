@@ -16,11 +16,17 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus'
 import {
   APP_VERSION,
   AppUpdateInfo,
+  CachedReleaseNote,
   checkForGitHubUpdate,
+  compareVersions,
+  getCachedReleaseNotes,
   getConfiguredGithubRepo,
   getSkippedUpdateVersion,
   isRunningInsideCapacitor,
+  normalizeVersion,
 } from '@/lib/app-update'
+import { RELEASE_HISTORY } from '@/lib/app-config'
+import FloatingTranslatorWindow, { type FloatingWindowMode } from '@/components/FloatingTranslatorWindow'
 import { trackTranslationCompleted } from '@/lib/analytics'
 
 function cn(...inputs: ClassValue[]) {
@@ -664,6 +670,9 @@ const TRANSLATIONS = {
     saveName: 'Save',
     aiNoticeTitle: 'AI Translation & Accuracy Notice',
     aiNoticeBody: 'ME Translator is powered by multiple AI providers and models (such as Google Gemini and Groq Cloud). Because different AI models vary in phrasing, tone, and context understanding, translations are not guaranteed to be 100% accurate. Please review important, official, legal, or medical details independently.',
+    whatsNewHistoryTitle: "What's New & Version History",
+    currentBadge: 'Current',
+    latestBadge: 'New Release',
   },
   my: {
     appTitle: 'ME ဘာသာပြန်စနစ်',
@@ -829,6 +838,9 @@ const TRANSLATIONS = {
     saveName: 'သိမ်းဆည်းမည်',
     aiNoticeTitle: 'AI ဘာသာပြန်စနစ်ဆိုင်ရာ သိကောင်းစရာ',
     aiNoticeBody: 'ME Translator သည် AI ဘာသာပြန်စနစ်ဖြစ်ပြီး အသုံးပြုထားသော API နှင့် AI Model အမျိုးအစားများ (ဥပမာ - Google Gemini နှင့် Groq Cloud) မတူညီမှုအပေါ် မူတည်၍ စကားလုံးအသုံးအနှုန်းနှင့် ဘာသာပြန်ရလဒ်များ ကွဲပြားနိုင်ပါသည်။ ထို့ကြောင့် ဘာသာပြန်ဆိုမှုတိုင်းသည် 100% ရာနှုန်းပြည့် တိကျမှန်ကန်သည်ဟု အာမမခံနိုင်ပါသဖြင့် အရေးကြီးသော စာရွက်စာတမ်းများနှင့် တရားဝင်အချက်အလက်များအတွက် ပြန်လည်စစ်ဆေးအသုံးပြုပေးပါရန် အသိပေးအပ်ပါသည်။',
+    whatsNewHistoryTitle: 'ဗားရှင်းအလိုက် အသစ်ပါဝင်ချက်များ',
+    currentBadge: 'လက်ရှိဗားရှင်း',
+    latestBadge: 'ဗားရှင်းအသစ်',
   }
 }
 
@@ -1112,6 +1124,9 @@ const Translator = () => {
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
   const [updateStatusMsg, setUpdateStatusMsg] = useState<string | null>(null)
   const [showIosInstallGuide, setShowIosInstallGuide] = useState(false)
+  const [floatingMode, setFloatingMode] = useState<FloatingWindowMode>('closed')
+  const [cachedReleaseNotes, setCachedReleaseNotes] = useState<CachedReleaseNote[]>([])
+  const [expandedVersion, setExpandedVersion] = useState<string>(normalizeVersion(APP_VERSION))
 
   const [pasteAlertMsg, setPasteAlertMsg] = useState<string | null>(null)
   const [micPermission, setMicPermission] = useState<PermissionState | 'unknown'>('unknown')
@@ -1485,11 +1500,14 @@ const Translator = () => {
       }
     })()
 
+    setCachedReleaseNotes(getCachedReleaseNotes())
+
     // Check for newer app releases automatically on launch
     const configuredRepo = getConfiguredGithubRepo()
     const updateTimer = setTimeout(async () => {
       const info = await checkForGitHubUpdate(configuredRepo)
       setUpdateInfo(info)
+      setCachedReleaseNotes(getCachedReleaseNotes())
       if (info.hasUpdate) {
         const skipped = getSkippedUpdateVersion()
         if (skipped !== info.latestVersion) {
@@ -2408,15 +2426,48 @@ const Translator = () => {
         </div>
       </header>
 
-      {/* Chat Area */}
-      <main
-        ref={chatScrollRef}
-        className="flex-1 min-h-0 min-w-0 w-full overflow-y-auto overflow-x-hidden overscroll-y-contain scrollbar-thin scrollbar-thumb-white/10"
-      >
-        <div className={cn(
-          "max-w-3xl w-full min-w-0 mx-auto px-4 py-6 sm:py-8",
-          messages.length === 0 && "min-h-full flex flex-col"
-        )}>
+      {/* Chat Area Shell (Holds Non-Conflicting Top-Right FAB & Floating Window) */}
+      <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden w-full min-w-0">
+        <FloatingTranslatorWindow
+          mode={floatingMode}
+          onChangeMode={setFloatingMode}
+          theme={theme}
+          themeConfig={currentTheme}
+          themeHover={themeHover}
+          appLang={appLang}
+          languages={CHAT_LANGUAGES}
+          targetLanguages={TARGET_CHAT_LANGUAGES}
+          defaultSourceLang={sourceLang}
+          defaultTargetLang={targetLang}
+          fontClass={currentFont.class}
+          myanmarFontClass={currentMyanmarFont.class}
+          aiProvider={aiProvider}
+          geminiModel={geminiModel}
+          groqModel={groqModel}
+          geminiApiKey={geminiApiKey}
+          groqApiKey={groqApiKey}
+          onTranslationSuccess={({ sourceLang: qSrc, targetLang: qTgt }) =>
+            trackTranslationCompleted({
+              provider: aiProvider,
+              sourceLang: qSrc,
+              targetLang: qTgt,
+              uiLanguage: appLang,
+            })
+          }
+          onOpenApiSettings={() => {
+            setActiveSettingsTab('api')
+            setIsSettingsOpen(true)
+          }}
+        />
+
+        <main
+          ref={chatScrollRef}
+          className="flex-1 min-h-0 min-w-0 w-full overflow-y-auto overflow-x-hidden overscroll-y-contain scrollbar-thin scrollbar-thumb-white/10"
+        >
+          <div className={cn(
+            "max-w-3xl w-full min-w-0 mx-auto px-4 pb-6 sm:pb-8",
+            messages.length === 0 ? "min-h-full flex flex-col pt-12 sm:pt-8" : "pt-14 sm:pt-12"
+          )}>
           {messages.length === 0 ? (
             <div className="my-auto flex flex-col items-center justify-center text-center space-y-5 py-2">
               <div className={cn(
@@ -2580,7 +2631,7 @@ const Translator = () => {
                       const isBurmeseOutput = (msg.role === 'assistant' && msg.targetLang === 'Myanmar') || /[\u1000-\u109F\uAA60-\uAA7F]/.test(msg.content);
                       return (
                         <div className={cn(
-                          "prose prose-invert max-w-full min-w-0 text-base leading-relaxed break-words [overflow-wrap:anywhere] [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-all [&_a]:break-all",
+                          "selectable-message prose prose-invert max-w-full min-w-0 text-base leading-relaxed break-words [overflow-wrap:anywhere] [&_pre]:overflow-x-auto [&_pre]:max-w-full [&_code]:break-all [&_a]:break-all",
                           isBurmeseOutput ? currentMyanmarFont.class : currentFont.class,
                           isCyber && "prose-p:text-[#00f2ff] prose-strong:text-[#00f2ff] prose-headings:text-[#00f2ff]",
                           isGlass && "prose-p:text-white prose-strong:text-white prose-headings:text-white",
@@ -2620,8 +2671,9 @@ const Translator = () => {
               <div ref={messagesEndRef} />
             </div>
           )}
-        </div>
-      </main>
+          </div>
+        </main>
+      </div>
 
       {/* Input Area */}
       <footer className={cn(
@@ -4463,6 +4515,7 @@ const Translator = () => {
                             setUpdateStatusMsg(null)
                             const info = await checkForGitHubUpdate(getConfiguredGithubRepo())
                             setUpdateInfo(info)
+                            setCachedReleaseNotes(getCachedReleaseNotes())
                             setIsCheckingUpdate(false)
                             if (info.hasUpdate) {
                               setIsUpdateDialogOpen(true)
@@ -4537,6 +4590,159 @@ const Translator = () => {
                       )}>
                         {tSettings.autoUpdateInfo}
                       </p>
+
+                      {/* Persistent What's New & Version Changelog History */}
+                      <div className="space-y-2.5 pt-1 min-w-0 w-full">
+                        <div className={cn(
+                          "flex items-center gap-2 text-xs font-bold uppercase tracking-wider px-1",
+                          isCyber ? "text-[#00f2ff]" : currentTheme.textMuted
+                        )}>
+                          <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                          <span>{tSettings.whatsNewHistoryTitle}</span>
+                        </div>
+
+                        {(() => {
+                          const versionMap = new Map<string, {
+                            version: string
+                            title: string
+                            items: string[]
+                            rawNotes?: string
+                          }>()
+
+                          RELEASE_HISTORY.forEach((entry) => {
+                            const ver = normalizeVersion(entry.version)
+                            versionMap.set(ver, {
+                              version: ver,
+                              title: stagedSettings.appLang === 'en' ? entry.titleEn : entry.titleMy,
+                              items: stagedSettings.appLang === 'en' ? entry.notesEn : entry.notesMy,
+                            })
+                          })
+
+                          cachedReleaseNotes.forEach((cached) => {
+                            const ver = normalizeVersion(cached.version)
+                            if (!ver) return
+                            if (!versionMap.has(ver)) {
+                              versionMap.set(ver, {
+                                version: ver,
+                                title: cached.releaseName || `v${ver}`,
+                                items: [],
+                                rawNotes: cached.releaseNotes,
+                              })
+                            }
+                          })
+
+                          const sortedEntries = Array.from(versionMap.values()).sort((a, b) =>
+                            compareVersions(b.version, a.version)
+                          )
+
+                          const currentNormalized = normalizeVersion(APP_VERSION)
+
+                          return sortedEntries.map((entry) => {
+                            const isCurrent = entry.version === currentNormalized
+                            const isLatestPending =
+                              !!updateInfo?.hasUpdate &&
+                              entry.version === normalizeVersion(updateInfo.latestVersion)
+                            const isExpanded = expandedVersion === entry.version
+
+                            return (
+                              <div
+                                key={entry.version}
+                                className={cn(
+                                  "rounded-xl border overflow-hidden transition-colors min-w-0 w-full",
+                                  isCyber
+                                    ? "bg-black border-[#00f2ff]/30"
+                                    : isBrutal
+                                      ? "bg-white border-2 border-black rounded-none"
+                                      : currentTheme.isDark
+                                        ? "bg-white/5 border-white/10"
+                                        : "bg-white border-gray-200 shadow-sm"
+                                )}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setExpandedVersion((prev) =>
+                                      prev === entry.version ? '' : entry.version
+                                    )
+                                  }
+                                  className={cn(
+                                    "w-full min-h-[48px] px-4 py-3 flex items-center justify-between gap-2 text-left transition-colors",
+                                    isCyber
+                                      ? "hover:bg-[#00f2ff]/10"
+                                      : currentTheme.isDark
+                                        ? "hover:bg-white/5"
+                                        : "hover:bg-gray-50"
+                                  )}
+                                >
+                                  <div className="min-w-0 flex-1 space-y-0.5">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-mono text-xs sm:text-sm font-bold tabular-nums">
+                                        v{entry.version}
+                                      </span>
+                                      {isCurrent && (
+                                        <span className={cn(
+                                          "text-[10px] font-bold px-2 py-0.5 rounded-md border",
+                                          isCyber
+                                            ? "bg-[#00f2ff]/15 border-[#00f2ff]/40 text-[#00f2ff]"
+                                            : isBrutal
+                                              ? "bg-black text-white border-black rounded-none"
+                                              : currentTheme.isDark
+                                                ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                                                : "bg-emerald-50 border-emerald-200 text-emerald-700"
+                                        )}>
+                                          {tSettings.currentBadge}
+                                        </span>
+                                      )}
+                                      {isLatestPending && (
+                                        <span className={cn(
+                                          "text-[10px] font-bold px-2 py-0.5 rounded-md border",
+                                          isCyber
+                                            ? "bg-amber-400/15 border-amber-400/40 text-amber-300"
+                                            : "bg-amber-500/15 border-amber-500/40 text-amber-400"
+                                        )}>
+                                          {tSettings.latestBadge}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className={cn("text-xs truncate", currentTheme.textMuted)}>
+                                      {entry.title}
+                                    </div>
+                                  </div>
+                                  <ChevronDown
+                                    className={cn(
+                                      "w-4 h-4 shrink-0 opacity-70 transition-transform duration-200",
+                                      isExpanded && "rotate-180"
+                                    )}
+                                  />
+                                </button>
+
+                                {isExpanded && (
+                                  <div className={cn(
+                                    "px-4 pb-3.5 pt-2.5 border-t text-xs leading-relaxed",
+                                    isCyber
+                                      ? "border-[#00f2ff]/20 text-[#00f2ff]/85"
+                                      : currentTheme.isDark
+                                        ? "border-white/10 text-gray-300"
+                                        : "border-gray-100 text-gray-700"
+                                  )}>
+                                    {entry.items.length > 0 ? (
+                                      <ul className="space-y-1.5 list-disc pl-4">
+                                        {entry.items.map((bullet, idx) => (
+                                          <li key={idx}>{bullet}</li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <div className="whitespace-pre-wrap break-words">
+                                        {entry.rawNotes}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })
+                        })()}
+                      </div>
                     </div>
 
                     {/* Pinned Bottom Footer: Close Updates */}

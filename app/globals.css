@@ -73,6 +73,14 @@
   }
 }
 
+/* Restore native text selection & copy callout exclusively for chat message content */
+.selectable-message,
+.selectable-message * {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 /* Distinctive & Diverse Myanmar Font Stylings */
 .font-mm-serif-elegant {
   font-family: 'Noto Serif Myanmar', serif !important;
