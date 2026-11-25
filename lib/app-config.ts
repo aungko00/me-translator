@@ -1,8 +1,19 @@
-export const APP_VERSION = '1.1.20';
-export const ANDROID_VERSION_CODE = 130;
+export const APP_VERSION = '1.1.21';
+export const ANDROID_VERSION_CODE = 131;
 export const DEFAULT_GITHUB_REPO = 'aungko00/me-translator';
 
 export const RELEASE_HISTORY = [
+  {
+    version: '1.1.21',
+    titleEn: 'Floating Translator Button Fix',
+    titleMy: 'Floating Translator ခလုတ် ပြင်ဆင်ချက်',
+    notesEn: [
+      'Fixed duplicate Floating Translator buttons to keep one clean icon button, and tapping Maximize now returns directly to the Main Chat Page.',
+    ],
+    notesMy: [
+      'Floating Translator ခလုတ် နှစ်ခုဖြစ်နေခြင်းကို Icon တစ်ခုတည်းဖြစ်အောင် ပြင်ဆင်ပြီး Maximize နှိပ်ပါက Main Chat Page သို့ တိုက်ရိုက်ပြန်ရောက်အောင် ပြင်ဆင်ထားပါသည်။',
+    ],
+  },
   {
     version: '1.1.20',
     titleEn: 'Floating Quick Translator Background & System Overlay Fix',
@@ -79,7 +90,5 @@ export const RELEASE_HISTORY = [
 ];
 
 export const RELEASE_WHATS_NEW =
-  '• Floating Quick Translator Fix: Fixed Floating Quick Translator stopping when exiting the app — Android now supports a system-wide background floating bubble & translator window over other apps (with Display Over Other Apps permission).\n' +
-  '• Outside-App Controls & Desktop Pop-Out: Translate over other apps with language switching, Paste, Copy, Minimize, Maximize, and Close, plus Desktop Browser Picture-in-Picture mode.\n\n' +
-  '• Floating Quick Translator ပြင်ဆင်မှု - အက်ပ်ထဲမှ ထွက်လိုက်လျှင် အမြန်ဘာသာပြန်ဝင်းဒိုး ရပ်သွားသည့်ပြဿနာကို ပြင်ဆင်ထားပါသည်။ Android တွင် "Display over other apps" ခွင့်ပြုချက်ဖြင့် တခြားအက်ပ်များအပေါ်မှ နောက်ခံတွင် ဆက်လက်ဖွင့်ပြီး ဘာသာပြန်နိုင်ပါပြီ။\n' +
-  '• အက်ပ်ပြင်ပ ထိန်းချုပ်မှုနှင့် Desktop Pop-Out - တခြားအက်ပ်များပေါ်မှ ဘာသာစကားပြောင်းခြင်း၊ Paste၊ Copy၊ ချုံ့/ချဲ့/ပိတ်ခြင်းများနှင့် Desktop Browser Picture-in-Picture စနစ်တို့ ထည့်သွင်းထားပါသည်။';
+  '• Floating Translator Button Fix: Fixed duplicate floating buttons to keep a single icon button, and Maximize now returns directly to the Main Chat Page.\n\n' +
+  '• Floating Translator ခလုတ် ပြင်ဆင်မှု - Floating ခလုတ် နှစ်ခုဖြစ်နေခြင်းကို Icon တစ်ခုတည်းဖြစ်အောင် ပြင်ဆင်ထားပြီး Maximize နှိပ်ပါက Main Chat Page သို့ တိုက်ရိုက်ပြန်ရောက်စေပါသည်။';

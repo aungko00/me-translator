@@ -290,11 +290,13 @@ public class FloatingOverlayService extends Service {
     }
 
     public static void handleAppForegrounded(Context context) {
-        if (isServiceRunning && startedAutomatically) {
-            startedAutomatically = false;
-            Intent intent = new Intent(context, FloatingOverlayService.class);
-            intent.setAction(ACTION_STOP);
-            context.startService(intent);
+        startedAutomatically = false;
+        if (isServiceRunning) {
+            try {
+                Intent intent = new Intent(context, FloatingOverlayService.class);
+                intent.setAction(ACTION_STOP);
+                context.startService(intent);
+            } catch (Exception ignored) {}
         }
     }
 
@@ -366,7 +368,7 @@ public class FloatingOverlayService extends Service {
         boolean isMy = "my".equals(prefs.getString("appLang", "en"));
 
         Intent openAppIntent = new Intent(this, MainActivity.class);
-        openAppIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        openAppIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         int piFlags = PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? PendingIntent.FLAG_IMMUTABLE : 0);
         PendingIntent openPending = PendingIntent.getActivity(this, 10, openAppIntent, piFlags);
 
@@ -708,7 +710,8 @@ public class FloatingOverlayService extends Service {
             hideKeyboard();
             startedAutomatically = false;
             Intent appIntent = new Intent(this, MainActivity.class);
-            appIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            appIntent.putExtra("openMainChat", true);
+            appIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             startActivity(appIntent);
             stopSelf();
         });
@@ -1576,14 +1579,34 @@ fs.writeFileSync(path.join(javaPkgDir, 'AppInstallerPlugin.java'), pluginJava, '
 const mainActivityPath = path.join(javaPkgDir, 'MainActivity.java');
 const mainActivityJava = `package com.metranslator.app;
 
+import android.content.Intent;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    private void dispatchOpenMainChatIfNeeded() {
+        Intent currentIntent = getIntent();
+        if (currentIntent != null && currentIntent.getBooleanExtra("openMainChat", false)) {
+            currentIntent.removeExtra("openMainChat");
+            if (getBridge() != null && getBridge().getWebView() != null) {
+                getBridge().eval(
+                    "window.__ME_OPEN_MAIN_CHAT__ = true; window.dispatchEvent(new CustomEvent('me-open-main-chat'));",
+                    null
+                );
+            }
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(AppInstallerPlugin.class);
         super.onCreate(savedInstanceState);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
     }
 
     @Override
@@ -1598,6 +1621,7 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         FloatingOverlayService.handleAppForegrounded(this);
+        dispatchOpenMainChatIfNeeded();
     }
 }
 `;

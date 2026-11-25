@@ -19,7 +19,6 @@ import {
   AlertTriangle,
   Sparkles,
   Zap,
-  Layers,
   PictureInPicture2,
   Shield,
 } from 'lucide-react'
@@ -80,10 +79,8 @@ interface FloatingTranslatorWindowProps {
   onTranslationSuccess: (meta: { sourceLang: string; targetLang: string }) => void
   onOpenApiSettings: () => void
   overlayPermissionGranted?: boolean
-  autoFloatOnLeave?: boolean
-  onToggleAutoFloat?: (next: boolean) => void
   onRequestOverlayPermission?: () => void
-  onLaunchNativeOverlay?: () => void
+  onOpenTrigger?: () => void
 }
 
 export function getThemeOverlayPalette(
@@ -265,10 +262,8 @@ export default function FloatingTranslatorWindow({
   onTranslationSuccess,
   onOpenApiSettings,
   overlayPermissionGranted = false,
-  autoFloatOnLeave = true,
-  onToggleAutoFloat,
   onRequestOverlayPermission,
-  onLaunchNativeOverlay,
+  onOpenTrigger,
 }: FloatingTranslatorWindowProps) {
   const copy = COPY_MAP[appLang]
   const isCyber = theme === 'cyberpunk'
@@ -304,10 +299,14 @@ export default function FloatingTranslatorWindow({
 
   // Sync initial languages when opening from closed state
   const prevModeRef = useRef<FloatingWindowMode>(mode)
+  const hasDraftRef = useRef(false)
+  hasDraftRef.current = Boolean(inputText || outputText)
   useEffect(() => {
     if (prevModeRef.current === 'closed' && (mode === 'open' || mode === 'maximized')) {
-      setSourceLang(defaultSourceLang || 'Myanmar')
-      setTargetLang(defaultTargetLang || 'English')
+      if (!hasDraftRef.current) {
+        setSourceLang(defaultSourceLang || 'Myanmar')
+        setTargetLang(defaultTargetLang || 'English')
+      }
       setOpenLangMenu(null)
       setTimeout(() => textareaRef.current?.focus(), 80)
     }
@@ -349,7 +348,7 @@ export default function FloatingTranslatorWindow({
         if (openLangMenu) {
           setOpenLangMenu(null)
         } else {
-          onChangeMode('minimized')
+          onChangeMode('closed')
         }
       }
     }
@@ -783,7 +782,7 @@ export default function FloatingTranslatorWindow({
       wrap.append(topBar, langRow, textArea, rowActions, translateBtn, resultDiv)
       doc.body.appendChild(wrap)
 
-      onChangeMode('minimized')
+      onChangeMode('closed')
     } catch {
       setNoticeText(copy.pipError)
     }
@@ -878,7 +877,7 @@ export default function FloatingTranslatorWindow({
 
   return (
     <>
-      {/* Top-Right Clean Floating Action Button (Shown when Closed) */}
+      {/* Top-Right Single Icon Floating Action Button (Shown when Closed) */}
       <AnimatePresence>
         {mode === 'closed' && (
           <motion.button
@@ -888,7 +887,13 @@ export default function FloatingTranslatorWindow({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.85, y: -6 }}
             transition={{ duration: 0.18 }}
-            onClick={() => onChangeMode('open')}
+            onClick={() => {
+              if (onOpenTrigger) {
+                onOpenTrigger()
+              } else {
+                onChangeMode('open')
+              }
+            }}
             title={copy.title}
             aria-label={copy.title}
             className={cn(
@@ -902,64 +907,6 @@ export default function FloatingTranslatorWindow({
         )}
       </AnimatePresence>
 
-      {/* Minimized Desktop-Style Floating Bar (Top-Right Docked) */}
-      <AnimatePresence>
-        {mode === 'minimized' && (
-          <motion.div
-            key="quick-translate-minimized"
-            initial={{ opacity: 0, scale: 0.9, y: -6 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: -6 }}
-            transition={{ duration: 0.18 }}
-            className={cn(
-              'absolute top-3 right-3 sm:top-4 sm:right-5 z-30 flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-2xl border',
-              windowShellClasses
-            )}
-          >
-            <button
-              type="button"
-              onClick={() => onChangeMode('open')}
-              className="flex items-center gap-2 min-h-[38px] pr-1 text-xs font-bold tracking-tight"
-            >
-              <Languages className={cn('w-4 h-4 shrink-0', themeConfig.icon)} />
-              <span className="truncate max-w-[130px]">{copy.title}</span>
-            </button>
-            <div className="flex items-center gap-0.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => onChangeMode('open')}
-                title={copy.restore}
-                aria-label={copy.restore}
-                className={cn(
-                  'min-w-[36px] min-h-[36px] rounded-xl flex items-center justify-center transition-all duration-200',
-                  themeHover.icon,
-                  themeConfig.isDark ? 'hover:bg-white/10' : 'hover:bg-black/5'
-                )}
-              >
-                <Maximize2 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => onChangeMode('closed')}
-                title={copy.close}
-                aria-label={copy.close}
-                className={cn(
-                  'min-w-[36px] min-h-[36px] rounded-xl flex items-center justify-center transition-all duration-200',
-                  themeHover.icon,
-                  isCyber
-                    ? 'hover:bg-red-500/20 text-red-400'
-                    : themeConfig.isDark
-                      ? 'hover:bg-red-500/20 text-red-400'
-                      : 'hover:bg-red-50 text-red-600'
-                )}
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Open / Maximized Floating Quick Translator Window */}
       <AnimatePresence>
         {(mode === 'open' || mode === 'maximized') && (
@@ -968,7 +915,7 @@ export default function FloatingTranslatorWindow({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => onChangeMode('minimized')}
+              onClick={() => onChangeMode('closed')}
               className="absolute inset-0 bg-black/45 backdrop-blur-[2px]"
             />
 
@@ -1039,42 +986,8 @@ export default function FloatingTranslatorWindow({
                   </div>
                 </div>
 
-                {/* Computer-style Minimize, Maximize/Restore, Close + Background Float Icons */}
+                {/* Computer-style Minimize, Maximize/Restore, Close */}
                 <div className="flex items-center gap-1 shrink-0">
-                  {isCapacitorNative && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!overlayPermissionGranted) {
-                          onRequestOverlayPermission?.()
-                        } else {
-                          setNoticeText(copy.overlayStartedNotice)
-                          onLaunchNativeOverlay?.()
-                        }
-                      }}
-                      title={copy.floatOverApps}
-                      aria-label={copy.floatOverApps}
-                      className={cn(
-                        'min-w-[38px] min-h-[38px] px-2 rounded-lg flex items-center justify-center gap-1.5 text-[11px] font-bold transition-all duration-200 border',
-                        themeHover.surface,
-                        overlayPermissionGranted
-                          ? isCyber
-                            ? 'border-[#00f2ff]/45 text-[#00f2ff] bg-[#00f2ff]/10'
-                            : themeConfig.isDark
-                              ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
-                              : 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                          : isCyber
-                            ? 'border-amber-400/50 text-amber-300 bg-amber-500/10'
-                            : themeConfig.isDark
-                              ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
-                              : 'border-amber-300 bg-amber-50 text-amber-800'
-                      )}
-                    >
-                      <Layers className="w-3.5 h-3.5 shrink-0" />
-                      <span className="hidden sm:inline whitespace-nowrap">{copy.floatOverApps}</span>
-                    </button>
-                  )}
-
                   {supportsPip && (
                     <button
                       type="button"
@@ -1099,7 +1012,7 @@ export default function FloatingTranslatorWindow({
 
                   <button
                     type="button"
-                    onClick={() => onChangeMode('minimized')}
+                    onClick={() => onChangeMode('closed')}
                     title={copy.minimize}
                     aria-label={copy.minimize}
                     className={cn(
@@ -1119,9 +1032,13 @@ export default function FloatingTranslatorWindow({
 
                   <button
                     type="button"
-                    onClick={() =>
-                      onChangeMode(mode === 'maximized' ? 'open' : 'maximized')
-                    }
+                    onClick={() => {
+                      if (isCapacitorNative) {
+                        onChangeMode('closed')
+                      } else {
+                        onChangeMode(mode === 'maximized' ? 'open' : 'maximized')
+                      }
+                    }}
                     title={mode === 'maximized' ? copy.restore : copy.maximize}
                     aria-label={mode === 'maximized' ? copy.restore : copy.maximize}
                     className={cn(
@@ -1167,70 +1084,29 @@ export default function FloatingTranslatorWindow({
 
               {/* Scrollable Window Body */}
               <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-3.5 sm:p-5 space-y-3.5 scrollbar-thin scrollbar-thumb-white/10">
-                {/* Android Background Floating Bar */}
-                {isCapacitorNative && (
+                {/* Android Display Over Apps Permission Banner (shown only if not yet allowed) */}
+                {isCapacitorNative && !overlayPermissionGranted && (
                   <div
                     className={cn(
-                      'rounded-xl border px-3 py-2.5 flex flex-col gap-2 text-xs',
+                      'rounded-xl border px-3 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs',
                       cardSurfaceClasses
                     )}
                   >
-                    {!overlayPermissionGranted ? (
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="flex items-start gap-2 min-w-0">
-                          <Shield className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
-                          <span className="leading-relaxed opacity-90">{copy.overlayNeedPerm}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => onRequestOverlayPermission?.()}
-                          className={cn(
-                            'min-h-[38px] px-3 py-1.5 rounded-lg font-bold text-xs shrink-0 transition-all',
-                            themeHover.primary,
-                            ctaButtonClasses
-                          )}
-                        >
-                          {copy.grantOverlayPerm}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <button
-                          type="button"
-                          onClick={() => onToggleAutoFloat?.(!autoFloatOnLeave)}
-                          className={cn(
-                            'min-h-[36px] px-2.5 py-1 rounded-lg border text-xs font-semibold inline-flex items-center gap-1.5 transition-all',
-                            themeHover.surface,
-                            autoFloatOnLeave
-                              ? isCyber
-                                ? 'border-[#00f2ff]/50 bg-[#00f2ff]/15 text-[#00f2ff]'
-                                : themeConfig.isDark
-                                  ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
-                                  : 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                              : themeConfig.isDark
-                                ? 'border-white/15 bg-white/5 text-gray-300'
-                                : 'border-gray-300 bg-gray-100 text-gray-700'
-                          )}
-                        >
-                          <Layers className="w-3.5 h-3.5 shrink-0" />
-                          <span>{autoFloatOnLeave ? copy.bgAutoOn : copy.bgAutoOff}</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setNoticeText(copy.overlayStartedNotice)
-                            onLaunchNativeOverlay?.()
-                          }}
-                          className={cn(
-                            'min-h-[36px] px-3 py-1 rounded-lg text-xs font-bold shrink-0 transition-all',
-                            themeHover.primary,
-                            ctaButtonClasses
-                          )}
-                        >
-                          {copy.launchOverlayNow}
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex items-start gap-2 min-w-0">
+                      <Shield className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                      <span className="leading-relaxed opacity-90">{copy.overlayNeedPerm}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRequestOverlayPermission?.()}
+                      className={cn(
+                        'min-h-[38px] px-3 py-1.5 rounded-lg font-bold text-xs shrink-0 transition-all',
+                        themeHover.primary,
+                        ctaButtonClasses
+                      )}
+                    >
+                      {copy.grantOverlayPerm}
+                    </button>
                   </div>
                 )}
                 {/* Language Pair Selector Row */}
@@ -1588,7 +1464,7 @@ export default function FloatingTranslatorWindow({
                           <button
                             type="button"
                             onClick={() => {
-                              onChangeMode('minimized')
+                              onChangeMode('closed')
                               onOpenApiSettings()
                             }}
                             className={cn(

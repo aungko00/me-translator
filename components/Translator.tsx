@@ -1225,17 +1225,55 @@ const Translator = () => {
     }
   }, [syncNativeFloatingConfig])
 
-  const handleLaunchNativeOverlay = useCallback(async () => {
-    if (!isRunningInsideCapacitor()) return
-    try {
-      await syncNativeFloatingConfig()
-      const res = await AppInstaller.startFloatingOverlay({ expanded: true })
-      if (res?.status === 'permission_needed') {
-        await AppInstaller.openOverlayPermissionSettings()
-      }
-    } catch {
-      // ignore
+  const openMainChatPage = useCallback(() => {
+    setFloatingMode('closed')
+    setIsSettingsOpen(false)
+    setIsSidebarOpen(false)
+    setRenamingSessionId(null)
+    setIsConfirmOpen(false)
+    setChatLangDropdown(null)
+    setActiveDropdown(null)
+    setIsMissingKeyWarningOpen(false)
+    setIsApplyConfirmOpen(false)
+    setShowIosInstallGuide(false)
+    setIsUpdateDialogOpen(false)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if ((window as any).__ME_OPEN_MAIN_CHAT__) {
+      delete (window as any).__ME_OPEN_MAIN_CHAT__
+      openMainChatPage()
     }
+    const handleOpenMainChat = () => {
+      delete (window as any).__ME_OPEN_MAIN_CHAT__
+      openMainChatPage()
+    }
+    window.addEventListener('me-open-main-chat', handleOpenMainChat)
+    return () => {
+      window.removeEventListener('me-open-main-chat', handleOpenMainChat)
+    }
+  }, [openMainChatPage])
+
+  const handleOpenQuickTranslator = useCallback(async () => {
+    if (isRunningInsideCapacitor()) {
+      try {
+        const perm = await AppInstaller.canDrawOverlays()
+        const granted = Boolean(perm?.granted)
+        setOverlayPermission(granted ? 'granted' : 'prompt')
+        if (granted) {
+          setFloatingMode('closed')
+          await syncNativeFloatingConfig()
+          const res = await AppInstaller.startFloatingOverlay({ expanded: true })
+          if (res?.status === 'started') {
+            return
+          }
+        }
+      } catch {
+        // fall back to in-app quick translate popup
+      }
+    }
+    setFloatingMode('open')
   }, [syncNativeFloatingConfig])
 
   const checkPermissions = useCallback(async () => {
@@ -2581,10 +2619,8 @@ const Translator = () => {
             setIsSettingsOpen(true)
           }}
           overlayPermissionGranted={overlayPermission === 'granted'}
-          autoFloatOnLeave={autoFloatOnLeave}
-          onToggleAutoFloat={handleToggleAutoFloat}
           onRequestOverlayPermission={handleRequestOverlayPermission}
-          onLaunchNativeOverlay={handleLaunchNativeOverlay}
+          onOpenTrigger={handleOpenQuickTranslator}
         />
 
         <main
@@ -4556,23 +4592,6 @@ const Translator = () => {
 
                         {isRunningInsideCapacitor() && (
                           <div className="flex flex-col gap-2">
-                            {overlayPermission === 'granted' && (
-                              <button
-                                type="button"
-                                onClick={handleLaunchNativeOverlay}
-                                className={cn(
-                                  "w-full min-h-[44px] py-2.5 rounded-xl text-xs font-bold border transition-all duration-200",
-                                  themeHover.surface,
-                                  isCyber
-                                    ? "border-[#00f2ff]/50 bg-[#00f2ff]/10 text-[#00f2ff]"
-                                    : currentTheme.isDark
-                                      ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/20"
-                                      : "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                                )}
-                              >
-                                {tSettings.launchOverlayBtn}
-                              </button>
-                            )}
                             <button
                               type="button"
                               onClick={() => AppInstaller.openAppSettings()}
